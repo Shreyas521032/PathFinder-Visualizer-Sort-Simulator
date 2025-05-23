@@ -1,5 +1,5 @@
 // api-server/src/server.ts
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -80,7 +80,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Health check endpoint
-app.get('/health', (req: express.Request, res: express.Response) => {
+app.get('/health', (req: Request, res: Response): void => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -94,7 +94,7 @@ app.use('/api/geocode', geocodeRoutes);
 app.use('/api/simulations', simulationRoutes);
 
 // API info endpoint
-app.get('/api', (req: express.Request, res: express.Response) => {
+app.get('/api', (req: Request, res: Response): void => {
   res.json({
     name: 'PathFinder Visualizer API',
     version: '1.0.0',
