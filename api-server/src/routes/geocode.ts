@@ -37,15 +37,16 @@ interface NominatimResponse {
 }
 
 // Forward geocoding: address -> coordinates using Nominatim (OpenStreetMap)
-router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) => {
+router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response): Promise<void> => {
   try {
     const { address, lat, lng } = req.query;
 
     if (!address && (!lat || !lng)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Either address or lat/lng coordinates are required',
       });
+      return;
     }
 
     let apiUrl: string;
@@ -68,10 +69,11 @@ router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) =>
       });
 
       if (!response.data || response.data.length === 0) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'No results found for the given address',
         });
+        return;
       }
 
       const results = response.data.map(item => ({
@@ -113,10 +115,11 @@ router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) =>
       });
 
       if (!response.data || !response.data.display_name) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'No results found for the given coordinates',
         });
+        return;
       }
 
       const result = {
@@ -140,17 +143,19 @@ router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) =>
 
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
-        return res.status(408).json({
+        res.status(408).json({
           success: false,
           error: 'Request timeout - please try again',
         });
+        return;
       }
 
       if (error.response?.status === 429) {
-        return res.status(429).json({
+        res.status(429).json({
           success: false,
           error: 'Rate limit exceeded for geocoding service',
         });
+        return;
       }
     }
 
@@ -162,22 +167,24 @@ router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) =>
 });
 
 // Batch geocoding endpoint
-router.post('/batch', async (req: Request, res: Response) => {
+router.post('/batch', async (req: Request, res: Response): Promise<void> => {
   try {
     const { addresses } = req.body;
 
     if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Array of addresses is required',
       });
+      return;
     }
 
     if (addresses.length > 10) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Maximum 10 addresses allowed per batch request',
       });
+      return;
     }
 
     const geocodePromises = addresses.map(async (address: string, index: number) => {
