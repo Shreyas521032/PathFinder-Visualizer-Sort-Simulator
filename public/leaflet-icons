@@ -1,0 +1,12 @@
+# Create public/leaflet-icons directory and download Leaflet default icons
+# Run these commands in your project root:
+
+mkdir -p public/leaflet-icons
+
+# Download Leaflet default marker icons
+curl -o public/leaflet-icons/marker-icon.png https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png
+curl -o public/leaflet-icons/marker-icon-2x.png https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png
+curl -o public/leaflet-icons/marker-shadow.png https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png
+
+# Alternative: Create simple colored markers if downloads fail
+# You can create simple 25x41 PNG files with your preferred colors
