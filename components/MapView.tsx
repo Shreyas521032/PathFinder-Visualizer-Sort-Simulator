@@ -3,29 +3,46 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import mapboxgl from 'mapbox-gl';
+import dynamic from 'next/dynamic';
+import { MapPin, Navigation, Search, Zap } from 'lucide-react';
 import { Point, PathNode } from '@/types';
 import { usePathfindingStore } from '@/store';
-import { validateMapboxToken } from '@/lib/utils';
-import { MapPin, Navigation, Zap } from 'lucide-react';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { geocodeAddress } from '@/lib/utils';
+
+// Dynamically import Leaflet components to avoid SSR issues
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+);
+const CircleMarker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.CircleMarker),
+  { ssr: false }
+);
 
 interface MapViewProps {
   className?: string;
 }
 
-export default function MapView({ className }: MapViewProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  
+// Custom hook for Leaflet map events
+function MapEvents() {
   const {
-    startPoint,
-    endPoint,
     walls,
-    visitedNodes,
-    pathNodes,
     isRunning,
     setStartPoint,
     setEndPoint,
@@ -33,190 +50,23 @@ export default function MapView({ className }: MapViewProps) {
     removeWall,
   } = usePathfindingStore();
 
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const { useMapEvents } = require('react-leaflet');
 
-  useEffect(() => {
-    if (!validateMapboxToken(mapboxToken)) {
-      setMapError('Invalid or missing Mapbox token. Please check your environment variables.');
-      return;
-    }
-
-    if (map.current || !mapContainer.current) return;
-
-    mapboxgl.accessToken = mapboxToken!;
-
-    try {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
-        center: [-74.006, 40.7128], // New York City
-        zoom: 13,
-        attributionControl: false,
-      });
-
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-      map.current.on('load', () => {
-        setMapLoaded(true);
-        initializeMapLayers();
-        setupMapInteractions();
-      });
-
-      map.current.on('error', (e) => {
-        console.error('Mapbox error:', e);
-        setMapError('Failed to load map. Please check your internet connection.');
-      });
-
-    } catch (error) {
-      console.error('Map initialization error:', error);
-      setMapError('Failed to initialize map.');
-    }
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [mapboxToken]);
-
-  const initializeMapLayers = () => {
-    if (!map.current) return;
-
-    // Add sources for visualization
-    map.current.addSource('walls', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [],
-      },
-    });
-
-    map.current.addSource('visited-nodes', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [],
-      },
-    });
-
-    map.current.addSource('path-nodes', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [],
-      },
-    });
-
-    map.current.addSource('start-end-points', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [],
-      },
-    });
-
-    // Add layers
-    map.current.addLayer({
-      id: 'walls',
-      type: 'circle',
-      source: 'walls',
-      paint: {
-        'circle-radius': 6,
-        'circle-color': '#EF4444',
-        'circle-opacity': 0.8,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#DC2626',
-      },
-    });
-
-    map.current.addLayer({
-      id: 'visited-nodes',
-      type: 'circle',
-      source: 'visited-nodes',
-      paint: {
-        'circle-radius': 4,
-        'circle-color': '#3B82F6',
-        'circle-opacity': 0.6,
-      },
-    });
-
-    map.current.addLayer({
-      id: 'path-nodes',
-      type: 'circle',
-      source: 'path-nodes',
-      paint: {
-        'circle-radius': 5,
-        'circle-color': '#10B981',
-        'circle-opacity': 0.9,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#059669',
-      },
-    });
-
-    map.current.addLayer({
-      id: 'start-end-points',
-      type: 'circle',
-      source: 'start-end-points',
-      paint: {
-        'circle-radius': 8,
-        'circle-color': ['get', 'color'],
-        'circle-opacity': 0.9,
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#FFFFFF',
-      },
-    });
-
-    // Add path line layer
-    map.current.addSource('path-line', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: [],
-        },
-      },
-    });
-
-    map.current.addLayer({
-      id: 'path-line',
-      type: 'line',
-      source: 'path-line',
-      paint: {
-        'line-color': '#10B981',
-        'line-width': 4,
-        'line-opacity': 0.8,
-      },
-    });
-  };
-
-  const setupMapInteractions = () => {
-    if (!map.current) return;
-
-    let isPlacingWalls = false;
-
-    map.current.on('mousedown', () => {
-      isPlacingWalls = true;
-    });
-
-    map.current.on('mouseup', () => {
-      isPlacingWalls = false;
-    });
-
-    map.current.on('click', (e) => {
+  const map = useMapEvents({
+    click(e) {
       if (isRunning) return;
 
       const point: Point = {
-        lat: e.lngLat.lat,
-        lng: e.lngLat.lng,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
       };
 
-      if (e.originalEvent.shiftKey) {
+      const originalEvent = (e as any).originalEvent;
+
+      if (originalEvent?.shiftKey) {
         // Shift + click to place end point
         setEndPoint(point);
-      } else if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+      } else if (originalEvent?.ctrlKey || originalEvent?.metaKey) {
         // Ctrl/Cmd + click to toggle walls
         const existingWall = walls.find(
           w => Math.abs(w.lat - point.lat) < 0.001 && Math.abs(w.lng - point.lng) < 0.001
@@ -230,144 +80,90 @@ export default function MapView({ className }: MapViewProps) {
         // Regular click to place start point
         setStartPoint(point);
       }
-    });
+    },
+  });
 
-    map.current.on('mousemove', (e) => {
-      if (isPlacingWalls && (e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
-        const point: Point = {
-          lat: e.lngLat.lat,
-          lng: e.lngLat.lng,
-        };
-        addWall(point);
-      }
-    });
+  return null;
+}
 
-    // Change cursor based on modifier keys
-    map.current.on('mousemove', (e) => {
-      if (isRunning) {
-        map.current!.getCanvas().style.cursor = 'not-allowed';
-      } else if (e.originalEvent.shiftKey) {
-        map.current!.getCanvas().style.cursor = 'crosshair';
-      } else if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
-        map.current!.getCanvas().style.cursor = 'copy';
-      } else {
-        map.current!.getCanvas().style.cursor = 'pointer';
+export default function MapView({ className }: MapViewProps) {
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const mapRef = useRef<any>(null);
+
+  const {
+    startPoint,
+    endPoint,
+    walls,
+    visitedNodes,
+    pathNodes,
+    isRunning,
+  } = usePathfindingStore();
+
+  // Default center (New York City)
+  const defaultCenter: [number, number] = [40.7128, -74.0060];
+
+  useEffect(() => {
+    // Import Leaflet CSS
+    if (typeof window !== 'undefined') {
+      import('leaflet/dist/leaflet.css');
+      setMapLoaded(true);
+
+      // Fix Leaflet default markers
+      const L = require('leaflet');
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: '/leaflet-icons/marker-icon-2x.png',
+        iconUrl: '/leaflet-icons/marker-icon.png',
+        shadowUrl: '/leaflet-icons/marker-shadow.png',
+      });
+    }
+  }, []);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const result = await geocodeAddress(searchQuery);
+      if (result && mapRef.current) {
+        mapRef.current.setView([result.lat, result.lng], 13);
       }
-    });
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  // Update map data when store changes
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-
-    // Update walls
-    const wallsFeatures = walls.map((wall, index) => ({
-      type: 'Feature' as const,
-      properties: { id: index },
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [wall.lng, wall.lat],
-      },
-    }));
-
-    (map.current.getSource('walls') as mapboxgl.GeoJSONSource)?.setData({
-      type: 'FeatureCollection',
-      features: wallsFeatures,
-    });
-  }, [walls, mapLoaded]);
-
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-
-    // Update visited nodes
-    const visitedFeatures = visitedNodes.map((node, index) => ({
-      type: 'Feature' as const,
-      properties: { id: index },
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [node.lng, node.lat],
-      },
-    }));
-
-    (map.current.getSource('visited-nodes') as mapboxgl.GeoJSONSource)?.setData({
-      type: 'FeatureCollection',
-      features: visitedFeatures,
-    });
-  }, [visitedNodes, mapLoaded]);
-
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-
-    // Update path nodes
-    const pathFeatures = pathNodes.map((node, index) => ({
-      type: 'Feature' as const,
-      properties: { id: index },
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [node.lng, node.lat],
-      },
-    }));
-
-    (map.current.getSource('path-nodes') as mapboxgl.GeoJSONSource)?.setData({
-      type: 'FeatureCollection',
-      features: pathFeatures,
-    });
-
-    // Update path line
-    if (pathNodes.length > 1) {
-      const coordinates = pathNodes.map(node => [node.lng, node.lat]);
-      (map.current.getSource('path-line') as mapboxgl.GeoJSONSource)?.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates,
-        },
-      });
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
-  }, [pathNodes, mapLoaded]);
+  };
 
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-
-    // Update start and end points
-    const startEndFeatures = [];
-    
-    if (startPoint) {
-      startEndFeatures.push({
-        type: 'Feature' as const,
-        properties: { 
-          id: 'start',
-          color: '#F59E0B',
-          type: 'start'
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [startPoint.lng, startPoint.lat],
-        },
-      });
-    }
-
-    if (endPoint) {
-      startEndFeatures.push({
-        type: 'Feature' as const,
-        properties: { 
-          id: 'end',
-          color: '#EF4444',
-          type: 'end'
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [endPoint.lng, endPoint.lat],
-        },
-      });
-    }
-
-    (map.current.getSource('start-end-points') as mapboxgl.GeoJSONSource)?.setData({
-      type: 'FeatureCollection',
-      features: startEndFeatures,
-    });
-  }, [startPoint, endPoint, mapLoaded]);
+  if (!mapLoaded) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className={`flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg ${className}`}
+      >
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="text-blue-600 dark:text-blue-400 mb-4"
+          >
+            <Navigation className="w-8 h-8 mx-auto" />
+          </motion.div>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">Loading map...</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (mapError) {
     return (
@@ -391,49 +187,209 @@ export default function MapView({ className }: MapViewProps) {
     );
   }
 
+  // Create custom icons
+  const createCustomIcon = (color: string, size: number = 25) => {
+    if (typeof window === 'undefined') return null;
+    
+    const L = require('leaflet');
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  };
+
   return (
     <div className={`relative ${className}`}>
-      <div ref={mapContainer} className="w-full h-full rounded-lg overflow-hidden" />
-      
-      {!mapLoaded && (
+      {/* Search Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-4 left-4 right-4 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 shadow-lg"
+      >
+        <div className="flex items-center gap-2">
+          <Search className="w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search for a location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1 bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-500"
+          />
+          <motion.button
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-sm disabled:opacity-50"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isSearching ? '...' : 'Go'}
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Map Container */}
+      <div className="w-full h-full rounded-lg overflow-hidden">
+        <MapContainer
+          center={defaultCenter}
+          zoom={13}
+          style={{ height: '100%', width: '100%' }}
+          ref={mapRef}
+        >
+          {/* OpenStreetMap Tiles */}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+
+          {/* Map Events Handler */}
+          <MapEvents />
+
+          {/* Start Point Marker */}
+          {startPoint && (
+            <Marker
+              position={[startPoint.lat, startPoint.lng]}
+              icon={createCustomIcon('#F59E0B', 30)}
+            >
+              <Popup>
+                <div className="text-center">
+                  <strong>Start Point</strong>
+                  <br />
+                  Lat: {startPoint.lat.toFixed(4)}
+                  <br />
+                  Lng: {startPoint.lng.toFixed(4)}
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
+          {/* End Point Marker */}
+          {endPoint && (
+            <Marker
+              position={[endPoint.lat, endPoint.lng]}
+              icon={createCustomIcon('#EF4444', 30)}
+            >
+              <Popup>
+                <div className="text-center">
+                  <strong>End Point</strong>
+                  <br />
+                  Lat: {endPoint.lat.toFixed(4)}
+                  <br />
+                  Lng: {endPoint.lng.toFixed(4)}
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
+          {/* Wall Markers */}
+          {walls.map((wall, index) => (
+            <CircleMarker
+              key={index}
+              center={[wall.lat, wall.lng]}
+              radius={8}
+              pathOptions={{
+                color: '#DC2626',
+                fillColor: '#EF4444',
+                fillOpacity: 0.8,
+                weight: 2,
+              }}
+            >
+              <Popup>Wall</Popup>
+            </CircleMarker>
+          ))}
+
+          {/* Visited Nodes */}
+          {visitedNodes.map((node, index) => (
+            <CircleMarker
+              key={`visited-${index}`}
+              center={[node.lat, node.lng]}
+              radius={4}
+              pathOptions={{
+                color: '#2563EB',
+                fillColor: '#3B82F6',
+                fillOpacity: 0.6,
+                weight: 1,
+              }}
+            />
+          ))}
+
+          {/* Path Nodes */}
+          {pathNodes.map((node, index) => (
+            <CircleMarker
+              key={`path-${index}`}
+              center={[node.lat, node.lng]}
+              radius={6}
+              pathOptions={{
+                color: '#059669',
+                fillColor: '#10B981',
+                fillOpacity: 0.9,
+                weight: 2,
+              }}
+            />
+          ))}
+
+          {/* Path Line */}
+          {pathNodes.length > 1 && (
+            <Polyline
+              positions={pathNodes.map(node => [node.lat, node.lng] as [number, number])}
+              pathOptions={{
+                color: '#10B981',
+                weight: 4,
+                opacity: 0.8,
+              }}
+            />
+          )}
+        </MapContainer>
+      </div>
+
+      {/* Instructions Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 text-xs shadow-lg"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span>Click to place start point</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span>Shift + Click to place end point</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full border-2 border-red-600"></div>
+            <span>Ctrl/Cmd + Click to toggle walls</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <span>Visited nodes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span>Path nodes</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Running Status */}
+      {isRunning && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm rounded-lg"
+          className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-10"
         >
-          <div className="text-center">
+          <div className="flex items-center gap-2">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="text-white mb-4"
             >
-              <Navigation className="w-8 h-8 mx-auto" />
+              <Navigation className="w-4 h-4" />
             </motion.div>
-            <p className="text-white text-sm">Loading map...</p>
-          </div>
-        </motion.div>
-      )}
-
-      {mapLoaded && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-3 text-xs"
-        >
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3 h-3 text-amber-500" />
-              <span>Click to place start point</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3 h-3 text-red-500" />
-              <span>Shift + Click to place end point</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full" />
-              <span>Ctrl/Cmd + Click to toggle walls</span>
-            </div>
+            <span className="text-sm font-medium">Finding path...</span>
           </div>
         </motion.div>
       )}
