@@ -30,7 +30,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.mapbox.com"],
+      connectSrc: ["'self'", "https://nominatim.openstreetmap.org"],
     },
   },
 }));
@@ -51,9 +51,9 @@ app.use(limiter);
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://your-vercel-app.vercel.app',
-        'https://pathfinder-visualizer.vercel.app'
+    ? process.env.CORS_ORIGINS?.split(',') || [
+        'https://pathfinder-visualizer.vercel.app',
+        'https://pathfinder-visualizer-git-main.vercel.app'
       ]
     : [
         'http://localhost:3000',
@@ -80,7 +80,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -94,7 +94,7 @@ app.use('/api/geocode', geocodeRoutes);
 app.use('/api/simulations', simulationRoutes);
 
 // API info endpoint
-app.get('/api', (req, res) => {
+app.get('/api', (req: express.Request, res: express.Response) => {
   res.json({
     name: 'PathFinder Visualizer API',
     version: '1.0.0',
