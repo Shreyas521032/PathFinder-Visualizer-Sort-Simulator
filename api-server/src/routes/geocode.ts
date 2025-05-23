@@ -22,28 +22,21 @@ interface GeocodeQuery {
   lng?: string;
 }
 
-interface MapboxGeocodeResponse {
-  features: Array<{
-    center: [number, number];
-    place_name: string;
-    properties: {
-      accuracy?: string;
-    };
-    bbox?: [number, number, number, number];
-  }>;
+interface NominatimResponse {
+  lat: string;
+  lon: string;
+  display_name: string;
+  place_id: string;
+  licence: string;
+  osm_type: string;
+  osm_id: string;
+  boundingbox: string[];
+  class: string;
+  type: string;
+  importance: number;
 }
 
-interface MapboxReverseGeocodeResponse {
-  features: Array<{
-    place_name: string;
-    center: [number, number];
-    properties: {
-      accuracy?: string;
-    };
-  }>;
-}
-
-// Forward geocoding: address -> coordinates
+// Forward geocoding: address -> coordinates using Nominatim (OpenStreetMap)
 router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) => {
   try {
     const { address, lat, lng } = req.query;
@@ -55,81 +48,108 @@ router.get('/', async (req: Request<{}, {}, {}, GeocodeQuery>, res: Response) =>
       });
     }
 
-    const mapboxToken = process.env.MAPBOX_SECRET_KEY;
-    if (!mapboxToken) {
-      return res.status(500).json({
-        success: false,
-        error: 'Mapbox API key not configured',
-      });
-    }
-
     let apiUrl: string;
-    let queryParam: string;
 
     if (address) {
-      // Forward geocoding
-      queryParam = encodeURIComponent(address);
-      apiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${queryParam}.json`;
+      // Forward geocoding using Nominatim
+      apiUrl = `https://nominatim.openstreetmap.org/search`;
+      
+      const response = await axios.get<NominatimResponse[]>(apiUrl, {
+        params: {
+          q: address,
+          format: 'json',
+          limit: 5,
+          addressdetails: 1,
+        },
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'PathFinder-Visualizer/1.0 (contact@pathfinder.com)', // Required by Nominatim
+        },
+      });
+
+      if (!response.data || response.data.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'No results found for the given address',
+        });
+      }
+
+      const results = response.data.map(item => ({
+        place_name: item.display_name,
+        center: [parseFloat(item.lon), parseFloat(item.lat)],
+        accuracy: 'approximate',
+        bbox: item.boundingbox ? [
+          parseFloat(item.boundingbox[2]), // west
+          parseFloat(item.boundingbox[0]), // south
+          parseFloat(item.boundingbox[3]), // east
+          parseFloat(item.boundingbox[1])  // north
+        ] : undefined,
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          results,
+          query: address,
+          total: results.length,
+        },
+      });
+
     } else {
       // Reverse geocoding
-      queryParam = `${lng},${lat}`;
-      apiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${queryParam}.json`;
-    }
+      apiUrl = `https://nominatim.openstreetmap.org/reverse`;
+      
+      const response = await axios.get<NominatimResponse>(apiUrl, {
+        params: {
+          lat: lat,
+          lon: lng,
+          format: 'json',
+          addressdetails: 1,
+        },
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'PathFinder-Visualizer/1.0 (contact@pathfinder.com)',
+        },
+      });
 
-    const response = await axios.get<MapboxGeocodeResponse | MapboxReverseGeocodeResponse>(apiUrl, {
-      params: {
-        access_token: mapboxToken,
-        limit: 5,
-        types: 'place,locality,neighborhood,address',
-      },
-      timeout: 5000,
-    });
+      if (!response.data || !response.data.display_name) {
+        return res.status(404).json({
+          success: false,
+          error: 'No results found for the given coordinates',
+        });
+      }
 
-    if (!response.data.features || response.data.features.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: address ? 'No results found for the given address' : 'No results found for the given coordinates',
+      const result = {
+        place_name: response.data.display_name,
+        center: [parseFloat(response.data.lon), parseFloat(response.data.lat)],
+        accuracy: 'approximate',
+      };
+
+      res.json({
+        success: true,
+        data: {
+          results: [result],
+          query: `${lat},${lng}`,
+          total: 1,
+        },
       });
     }
-
-    const results = response.data.features.map(feature => ({
-      place_name: feature.place_name,
-      center: feature.center,
-      accuracy: feature.properties?.accuracy || 'unknown',
-      bbox: 'bbox' in feature ? feature.bbox : undefined,
-    }));
-
-    res.json({
-      success: true,
-      data: {
-        results,
-        query: address || `${lat},${lng}`,
-        total: results.length,
-      },
-    });
 
   } catch (error) {
     console.error('Geocoding error:', error);
 
     if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        return res.status(500).json({
-          success: false,
-          error: 'Invalid Mapbox API key',
-        });
-      }
-      
-      if (error.response?.status === 422) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid query parameters',
-        });
-      }
-
       if (error.code === 'ECONNABORTED') {
         return res.status(408).json({
           success: false,
           error: 'Request timeout - please try again',
+        });
+      }
+
+      if (error.response?.status === 429) {
+        return res.status(429).json({
+          success: false,
+          error: 'Rate limit exceeded for geocoding service',
         });
       }
     }
@@ -160,38 +180,34 @@ router.post('/batch', async (req: Request, res: Response) => {
       });
     }
 
-    const mapboxToken = process.env.MAPBOX_SECRET_KEY;
-    if (!mapboxToken) {
-      return res.status(500).json({
-        success: false,
-        error: 'Mapbox API key not configured',
-      });
-    }
-
     const geocodePromises = addresses.map(async (address: string, index: number) => {
       try {
-        const queryParam = encodeURIComponent(address);
-        const apiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${queryParam}.json`;
-
-        const response = await axios.get<MapboxGeocodeResponse>(apiUrl, {
+        const response = await axios.get<NominatimResponse[]>('https://nominatim.openstreetmap.org/search', {
           params: {
-            access_token: mapboxToken,
+            q: address,
+            format: 'json',
             limit: 1,
-            types: 'place,locality,neighborhood,address',
+            addressdetails: 1,
           },
           timeout: 5000,
+          headers: {
+            'User-Agent': 'PathFinder-Visualizer/1.0 (contact@pathfinder.com)',
+          },
         });
 
-        if (response.data.features && response.data.features.length > 0) {
-          const feature = response.data.features[0];
+        // Add delay to respect Nominatim usage policy (max 1 request per second)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (response.data && response.data.length > 0) {
+          const item = response.data[0];
           return {
             index,
             address,
             success: true,
             result: {
-              place_name: feature.place_name,
-              center: feature.center,
-              accuracy: feature.properties?.accuracy || 'unknown',
+              place_name: item.display_name,
+              center: [parseFloat(item.lon), parseFloat(item.lat)],
+              accuracy: 'approximate',
             },
           };
         } else {
