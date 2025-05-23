@@ -6,31 +6,30 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_MAPBOX_TOKEN: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
 
   // Image optimization
   images: {
     domains: [
-      'api.mapbox.com',
-      'tiles.mapbox.com',
-      'assets.mapbox.com'
+      'tile.openstreetmap.org',
+      'a.tile.openstreetmap.org',
+      'b.tile.openstreetmap.org',
+      'c.tile.openstreetmap.org'
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Webpack configuration for Mapbox GL JS
+  // Webpack configuration for Leaflet
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Handle Mapbox GL JS
+    // Handle Leaflet CSS and images
     config.module.rules.push({
-      test: /\.mjs$/,
-      include: /node_modules/,
-      type: 'javascript/auto',
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader'],
     });
 
-    // Ignore warnings from Mapbox GL JS
+    // Ignore warnings from Leaflet
     config.ignoreWarnings = [
       /Failed to parse source map/,
       /Critical dependency: the request of a dependency is an expression/,
@@ -85,9 +84,6 @@ const nextConfig = {
 
   // Output configuration for static export (if needed)
   output: 'standalone',
-
-  // Transpile packages
-  transpilePackages: ['mapbox-gl'],
 
   // TypeScript configuration
   typescript: {
