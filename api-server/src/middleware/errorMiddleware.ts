@@ -6,7 +6,7 @@ interface ErrorWithStatus extends Error {
   statusCode?: number;
 }
 
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
+export const notFound = (req: Request, res: Response, next: NextFunction): void => {
   const error = new Error(`Not Found - ${req.originalUrl}`) as ErrorWithStatus;
   error.status = 404;
   next(error);
@@ -17,7 +17,7 @@ export const errorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   const statusCode = err.status || err.statusCode || 500;
   
   // Log error details
