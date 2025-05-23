@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -91,22 +94,40 @@
     @apply bg-gray-400 dark:bg-gray-500;
   }
   
-  /* Mapbox overrides */
-  .mapboxgl-ctrl-bottom-left,
-  .mapboxgl-ctrl-bottom-right {
-    @apply hidden;
+  /* Leaflet overrides for dark mode */
+  .dark .leaflet-container {
+    background: #1f2937;
   }
   
-  .mapboxgl-popup {
-    z-index: 1000;
+  .dark .leaflet-popup-content-wrapper {
+    @apply bg-gray-800 text-white;
   }
   
-  .mapboxgl-popup-content {
-    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg;
+  .dark .leaflet-popup-tip {
+    background: #1f2937;
   }
   
-  .mapboxgl-popup-close-button {
-    @apply text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200;
+  .dark .leaflet-control {
+    @apply bg-gray-800 border-gray-600;
+  }
+  
+  .dark .leaflet-control a {
+    @apply text-white bg-gray-800;
+  }
+  
+  .dark .leaflet-control a:hover {
+    @apply bg-gray-700;
+  }
+  
+  /* Custom Leaflet marker styles */
+  .custom-div-icon {
+    background: transparent !important;
+    border: none !important;
+  }
+  
+  /* Hide Leaflet attribution in bottom right */
+  .leaflet-control-attribution {
+    @apply text-xs opacity-70;
   }
   
   /* Selection styles */
