@@ -40,9 +40,6 @@
 }
 
 // api-server/.env.example
-# Mapbox Configuration
-MAPBOX_SECRET_KEY=sk.your_mapbox_secret_key_here
-
 # Server Configuration
 PORT=3001
 NODE_ENV=development
@@ -59,3 +56,5 @@ HELMET_CSP_ENABLED=true
 
 # Logging
 LOG_LEVEL=info
+
+# Note: No API keys required! Using free OpenStreetMap/Nominatim for geocoding
