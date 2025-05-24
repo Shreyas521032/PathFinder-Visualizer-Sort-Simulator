@@ -2003,16 +2003,17 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Add final developer credit at the bottom of sidebar
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                color: white; padding: 10px; border-radius: 10px; 
-                text-align: center; margin-top: 20px;'>
-        <strong>✨ Developed with ❤️ by<br>Shreyas Kasture ✨</strong>
-    </div>
-    """, unsafe_allow_html=True)comparing': [j, j+1],
+# Helper function to generate sorting steps
+def generate_sorting_steps(arr, algorithm):
+    steps = []
+    n = len(arr)
+    
+    if algorithm == "Bubble Sort":
+        for i in range(n):
+            for j in range(0, n-i-1):
+                steps.append({
+                    'array': arr.copy(),
+                    'comparing': [j, j+1],
                     'operation': f"Comparing positions {j} and {j+1}"
                 })
                 if arr[j] > arr[j+1]:
@@ -2047,7 +2048,212 @@ with st.sidebar:
         for i in range(1, n):
             key = arr[i]
             j = i-1
+            steps.append({
+                'array': arr.copy(),
+                'comparing': [i, j],
+                'operation': f"Insertion: considering element at position {i}"
+            })
+            
             while j >= 0 and key < arr[j]:
                 steps.append({
                     'array': arr.copy(),
-                    '
+                    'comparing': [j, j+1],
+                    'operation': f"Insertion: comparing positions {j} and {j+1}"
+                })
+                arr[j+1] = arr[j]
+                j -= 1
+            
+            arr[j+1] = key
+            steps.append({
+                'array': arr.copy(),
+                'swapping': [j+1],
+                'operation': f"Inserted element at position {j+1}"
+            })
+    
+    elif algorithm == "Quick Sort":
+        # Simplified Quick Sort visualization
+        def quick_sort_steps(arr, low, high):
+            if low < high:
+                # Partition
+                pivot = arr[high]
+                i = low - 1
+                
+                for j in range(low, high):
+                    steps.append({
+                        'array': arr.copy(),
+                        'comparing': [j, high],
+                        'operation': f"Comparing element {j} with pivot {high}"
+                    })
+                    
+                    if arr[j] <= pivot:
+                        i += 1
+                        arr[i], arr[j] = arr[j], arr[i]
+                        steps.append({
+                            'array': arr.copy(),
+                            'swapping': [i, j],
+                            'operation': f"Swapping positions {i} and {j}"
+                        })
+                
+                arr[i+1], arr[high] = arr[high], arr[i+1]
+                steps.append({
+                    'array': arr.copy(),
+                    'swapping': [i+1, high],
+                    'operation': f"Placing pivot at position {i+1}"
+                })
+                
+                p = i + 1
+                
+                # Recursively sort elements
+                quick_sort_steps(arr, low, p-1)
+                quick_sort_steps(arr, p+1, high)
+        
+        # Start the quick sort
+        quick_sort_steps(arr, 0, n-1)
+    
+    elif algorithm == "Merge Sort":
+        # Simplified Merge Sort visualization
+        def merge_sort_steps(arr, left, right):
+            if right - left > 1:
+                mid = (left + right) // 2
+                merge_sort_steps(arr, left, mid)
+                merge_sort_steps(arr, mid, right)
+                
+                # Merge step
+                temp = arr[left:right]
+                i, j, k = 0, mid - left, left
+                
+                while i < mid - left and j < right - left:
+                    steps.append({
+                        'array': arr.copy(),
+                        'comparing': [left + i, left + j],
+                        'operation': f"Merging: comparing {left + i} and {left + j}"
+                    })
+                    
+                    if temp[i] <= temp[j]:
+                        arr[k] = temp[i]
+                        i += 1
+                    else:
+                        arr[k] = temp[j]
+                        j += 1
+                    
+                    steps.append({
+                        'array': arr.copy(),
+                        'swapping': [k],
+                        'operation': f"Placing merged element at position {k}"
+                    })
+                    k += 1
+                
+                # Copy remaining elements
+                while i < mid - left:
+                    arr[k] = temp[i]
+                    steps.append({
+                        'array': arr.copy(),
+                        'swapping': [k],
+                        'operation': f"Copying remaining left element to position {k}"
+                    })
+                    i += 1
+                    k += 1
+                
+                while j < right - left:
+                    arr[k] = temp[j]
+                    steps.append({
+                        'array': arr.copy(),
+                        'swapping': [k],
+                        'operation': f"Copying remaining right element to position {k}"
+                    })
+                    j += 1
+                    k += 1
+        
+        # Start the merge sort
+        merge_sort_steps(arr, 0, n)
+    
+    elif algorithm == "Heap Sort":
+        # Simplified Heap Sort visualization
+        def heapify(arr, n, i):
+            largest = i
+            left = 2 * i + 1
+            right = 2 * i + 2
+            
+            if left < n:
+                steps.append({
+                    'array': arr.copy(),
+                    'comparing': [largest, left],
+                    'operation': f"Heapify: comparing parent {largest} with left child {left}"
+                })
+                
+                if arr[left] > arr[largest]:
+                    largest = left
+            
+            if right < n:
+                steps.append({
+                    'array': arr.copy(),
+                    'comparing': [largest, right],
+                    'operation': f"Heapify: comparing current largest {largest} with right child {right}"
+                })
+                
+                if arr[right] > arr[largest]:
+                    largest = right
+            
+            if largest != i:
+                arr[i], arr[largest] = arr[largest], arr[i]
+                steps.append({
+                    'array': arr.copy(),
+                    'swapping': [i, largest],
+                    'operation': f"Heapify: swapping positions {i} and {largest}"
+                })
+                
+                heapify(arr, n, largest)
+        
+        # Build max heap
+        for i in range(n // 2 - 1, -1, -1):
+            heapify(arr, n, i)
+        
+        # Extract elements one by one
+        for i in range(n-1, 0, -1):
+            arr[0], arr[i] = arr[i], arr[0]
+            steps.append({
+                'array': arr.copy(),
+                'swapping': [0, i],
+                'operation': f"Heap Sort: placing largest element at position {i}"
+            })
+            
+            heapify(arr, i, 0)
+    
+    else:
+        # For any other algorithm, show a simplified sorting
+        steps.append({
+            'array': arr.copy(),
+            'operation': f"{algorithm} - Initial array"
+        })
+        
+        arr.sort()
+        
+        steps.append({
+            'array': arr.copy(),
+            'operation': f"{algorithm} - Completed"
+        })
+    
+    return steps
+
+# Footer with developer credits
+st.markdown("---")
+st.markdown("""
+<div class="footer-developer">
+    <h3>✨ Developed with ❤️ by Shreyas Kasture ✨</h3>
+    <p>Advanced PathFinder & Sort Visualizer - Bringing algorithms to life!</p>
+    <p style="font-size: 0.9em; opacity: 0.8;">
+        Made with Streamlit, Plotly, and Folium | Interactive Learning Experience
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Add final developer credit at the bottom of sidebar
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                color: white; padding: 10px; border-radius: 10px; 
+                text-align: center; margin-top: 20px;'>
+        <strong>✨ Developed with ❤️ by<br>Shreyas Kasture ✨</strong>
+    </div>
+    """, unsafe_allow_html=True)
