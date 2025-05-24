@@ -858,113 +858,115 @@ with tab1:
                         if start_node is None or end_node is None:
                             st.error("❌ Could not find valid nodes near selected points")
                         else:
-                        
-                        # Run selected algorithm
-                        start_time = time.time()
-                        if algorithm == "A* (A-Star)":
-                            path, visited = PathfindingAlgorithms.a_star(G, start_node, end_node)
-                        elif algorithm == "Dijkstra":
-                            path, visited = PathfindingAlgorithms.dijkstra(G, start_node, end_node)
-                        elif algorithm == "BFS (Breadth-First Search)":
-                            path, visited = PathfindingAlgorithms.bfs(G, start_node, end_node)
-                        elif algorithm == "DFS (Depth-First Search)":
-                            path, visited = PathfindingAlgorithms.dfs(G, start_node, end_node)
-                        elif algorithm == "Greedy Best-First":
-                            path, visited = PathfindingAlgorithms.greedy_best_first(G, start_node, end_node)
-                        else:  # Bidirectional Search
-                            path, visited = PathfindingAlgorithms.bidirectional_search(G, start_node, end_node)
-                        
-                        end_time = time.time()
-                        execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
-                        
-                        # Calculate path distance
-                        path_distance = 0
-                        if len(path) > 1:
-                            for i in range(len(path) - 1):
-                                if G.has_edge(path[i], path[i+1]):
-                                    path_distance += G.edges[path[i], path[i+1], 0].get('length', 0)
-                        
-                        # Create result map
-                        result_map = folium.Map(
-                            location=[center_lat, center_lon],
-                            zoom_start=15,
-                            tiles='OpenStreetMap'
-                        )
-                        
-                        # Add base graph (lighter)
-                        for edge in G.edges():
-                            node1, node2 = edge[0], edge[1]
-                            lat1, lon1 = G.nodes[node1]['y'], G.nodes[node1]['x']
-                            lat2, lon2 = G.nodes[node2]['y'], G.nodes[node2]['x']
+                        if start_node is None or end_node is None:
+                            st.error("❌ Could not find valid nodes near selected points")
+                        else:
+                            # Run selected algorithm
+                            start_time = time.time()
+                            if algorithm == "A* (A-Star)":
+                                path, visited = PathfindingAlgorithms.a_star(G, start_node, end_node)
+                            elif algorithm == "Dijkstra":
+                                path, visited = PathfindingAlgorithms.dijkstra(G, start_node, end_node)
+                            elif algorithm == "BFS (Breadth-First Search)":
+                                path, visited = PathfindingAlgorithms.bfs(G, start_node, end_node)
+                            elif algorithm == "DFS (Depth-First Search)":
+                                path, visited = PathfindingAlgorithms.dfs(G, start_node, end_node)
+                            elif algorithm == "Greedy Best-First":
+                                path, visited = PathfindingAlgorithms.greedy_best_first(G, start_node, end_node)
+                            else:  # Bidirectional Search
+                                path, visited = PathfindingAlgorithms.bidirectional_search(G, start_node, end_node)
                             
-                            folium.PolyLine(
-                                locations=[(lat1, lon1), (lat2, lon2)],
-                                color='lightgray',
-                                weight=1,
-                                opacity=0.3
-                            ).add_to(result_map)
-                        
-                        # Add visited nodes
-                        for node in visited:
-                            if node in G.nodes:
-                                lat, lon = G.nodes[node]['y'], G.nodes[node]['x']
-                                folium.CircleMarker(
-                                    location=[lat, lon],
-                                    radius=2,
-                                    color='orange',
-                                    fillColor='orange',
-                                    fillOpacity=0.6,
-                                    popup=f"Visited: {node}"
+                            end_time = time.time()
+                            execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
+                            
+                            # Calculate path distance
+                            path_distance = 0
+                            if len(path) > 1:
+                                for i in range(len(path) - 1):
+                                    if G.has_edge(path[i], path[i+1]):
+                                        path_distance += G.edges[path[i], path[i+1], 0].get('length', 0)
+                            
+                            # Create result map
+                            result_map = folium.Map(
+                                location=[center_lat, center_lon],
+                                zoom_start=15,
+                                tiles='OpenStreetMap'
+                            )
+                            
+                            # Add base graph (lighter)
+                            for edge in G.edges():
+                                node1, node2 = edge[0], edge[1]
+                                lat1, lon1 = G.nodes[node1]['y'], G.nodes[node1]['x']
+                                lat2, lon2 = G.nodes[node2]['y'], G.nodes[node2]['x']
+                                
+                                folium.PolyLine(
+                                    locations=[(lat1, lon1), (lat2, lon2)],
+                                    color='lightgray',
+                                    weight=1,
+                                    opacity=0.3
                                 ).add_to(result_map)
-                        
-                        # Add path
-                        if path and len(path) > 1:
-                            path_coords = []
-                            for node in path:
+                            
+                            # Add visited nodes
+                            for node in visited:
                                 if node in G.nodes:
                                     lat, lon = G.nodes[node]['y'], G.nodes[node]['x']
-                                    path_coords.append([lat, lon])
+                                    folium.CircleMarker(
+                                        location=[lat, lon],
+                                        radius=2,
+                                        color='orange',
+                                        fillColor='orange',
+                                        fillOpacity=0.6,
+                                        popup=f"Visited: {node}"
+                                    ).add_to(result_map)
                             
-                            if path_coords:
-                                folium.PolyLine(
-                                    locations=path_coords,
-                                    color='red',
-                                    weight=4,
-                                    opacity=0.8,
-                                    popup=f"Optimal Path ({len(path)} nodes)"
-                                ).add_to(result_map)
-                        
-                        # Add start and end markers
-                        folium.Marker(
-                            location=[start_point['lat'], start_point['lng']],
-                            popup="Start Point",
-                            icon=folium.Icon(color='green', icon='play')
-                        ).add_to(result_map)
-                        
-                        folium.Marker(
-                            location=[end_point['lat'], end_point['lng']],
-                            popup="End Point",
-                            icon=folium.Icon(color='red', icon='stop')
-                        ).add_to(result_map)
-                        
-                        # Store results
-                        st.session_state.result_map = result_map
-                        st.session_state.path_info = {
-                            'algorithm': algorithm,
-                            'path_length': len(path),
-                            'visited_nodes': len(visited),
-                            'path_found': len(path) > 0,
-                            'execution_time': execution_time,
-                            'path_distance': path_distance / 1000 if path_distance > 0 else 0  # Convert to km
-                        }
-                        
-                        # Display result map
-                        st_folium(result_map, width=700, height=500)
-                        
-                        if len(path) > 0:
-                            st.success(f"✅ Path found! {len(path)} nodes, {path_distance/1000:.2f} km")
-                        else:
-                            st.error("❌ No path found between selected points")
+                            # Add path
+                            if path and len(path) > 1:
+                                path_coords = []
+                                for node in path:
+                                    if node in G.nodes:
+                                        lat, lon = G.nodes[node]['y'], G.nodes[node]['x']
+                                        path_coords.append([lat, lon])
+                                
+                                if path_coords:
+                                    folium.PolyLine(
+                                        locations=path_coords,
+                                        color='red',
+                                        weight=4,
+                                        opacity=0.8,
+                                        popup=f"Optimal Path ({len(path)} nodes)"
+                                    ).add_to(result_map)
+                            
+                            # Add start and end markers
+                            folium.Marker(
+                                location=[start_point['lat'], start_point['lng']],
+                                popup="Start Point",
+                                icon=folium.Icon(color='green', icon='play')
+                            ).add_to(result_map)
+                            
+                            folium.Marker(
+                                location=[end_point['lat'], end_point['lng']],
+                                popup="End Point",
+                                icon=folium.Icon(color='red', icon='stop')
+                            ).add_to(result_map)
+                            
+                            # Store results
+                            st.session_state.result_map = result_map
+                            st.session_state.path_info = {
+                                'algorithm': algorithm,
+                                'path_length': len(path),
+                                'visited_nodes': len(visited),
+                                'path_found': len(path) > 0,
+                                'execution_time': execution_time,
+                                'path_distance': path_distance / 1000 if path_distance > 0 else 0  # Convert to km
+                            }
+                            
+                            # Display result map
+                            st_folium(result_map, width=700, height=500)
+                            
+                            if len(path) > 0:
+                                st.success(f"✅ Path found! {len(path)} nodes, {path_distance/1000:.2f} km")
+                            else:
+                                st.error("❌ No path found between selected points")
                 
                 except Exception as e:
                     st.error(f"❌ Error finding path: {str(e)}")
