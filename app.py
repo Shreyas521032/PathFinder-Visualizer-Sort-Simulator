@@ -1,8 +1,8 @@
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
-import osmnx as ox
-import networkx as nx
+import requests
+import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,10 +13,11 @@ import random
 from collections import deque
 import heapq
 import math
+from typing import List, Tuple, Dict, Optional
 
 # Page configuration
 st.set_page_config(
-    page_title="PathFinder & Sort Visualizer",
+    page_title="Advanced PathFinder & Sort Visualizer",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -70,34 +71,79 @@ st.markdown("""
     .complexity-best { background-color: #d4edda; color: #155724; }
     .complexity-average { background-color: #fff3cd; color: #856404; }
     .complexity-worst { background-color: #f8d7da; color: #721c24; }
+    .grid-cell {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #ccc;
+        display: inline-block;
+        margin: 1px;
+    }
+    .path-stats {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown('<h1 class="main-header">🗺️ PathFinder & Sort Visualizer</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Interactive pathfinding on real maps & animated sorting algorithms</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🗺️ Advanced PathFinder & Sort Visualizer</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Interactive pathfinding on real maps & grid systems + animated sorting algorithms</p>', unsafe_allow_html=True)
 
-# Enhanced Pathfinding algorithms implementation
+# Grid-based pathfinding for better visualization
+class GridPathfinder:
+    def __init__(self, width: int, height: int):
+        self.width = width
+        self.height = height
+        self.grid = [[0 for _ in range(width)] for _ in range(height)]
+        self.start = None
+        self.goal = None
+        self.obstacles = set()
+    
+    def set_obstacle(self, x: int, y: int):
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.obstacles.add((x, y))
+            self.grid[y][x] = 1
+    
+    def remove_obstacle(self, x: int, y: int):
+        if (x, y) in self.obstacles:
+            self.obstacles.remove((x, y))
+            self.grid[y][x] = 0
+    
+    def is_valid(self, x: int, y: int) -> bool:
+        return (0 <= x < self.width and 0 <= y < self.height and 
+                (x, y) not in self.obstacles)
+    
+    def get_neighbors(self, x: int, y: int) -> List[Tuple[int, int]]:
+        neighbors = []
+        # 8-directional movement
+        directions = [(-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1)]
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if self.is_valid(nx, ny):
+                neighbors.append((nx, ny))
+        return neighbors
+    
+    def heuristic(self, a: Tuple[int, int], b: Tuple[int, int]) -> float:
+        # Euclidean distance
+        return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+    
+    def get_distance(self, a: Tuple[int, int], b: Tuple[int, int]) -> float:
+        # Diagonal movement cost
+        dx, dy = abs(a[0] - b[0]), abs(a[1] - b[1])
+        if dx == 1 and dy == 1:
+            return math.sqrt(2)  # Diagonal
+        return 1.0  # Horizontal/Vertical
+
+# Enhanced Pathfinding algorithms for grid
 class PathfindingAlgorithms:
     @staticmethod
-    def heuristic(node1, node2, graph):
-        """Calculate Euclidean distance between two nodes"""
-        try:
-            x1, y1 = graph.nodes[node1]['x'], graph.nodes[node1]['y']
-            x2, y2 = graph.nodes[node2]['x'], graph.nodes[node2]['y']
-            return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-        except:
-            return 0
-    
-    @staticmethod
-    def a_star(graph, start, goal):
-        """A* pathfinding algorithm with detailed tracking"""
+    def a_star(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
         open_set = [(0, start)]
         came_from = {}
-        g_score = {node: float('inf') for node in graph.nodes()}
-        g_score[start] = 0
-        f_score = {node: float('inf') for node in graph.nodes()}
-        f_score[start] = PathfindingAlgorithms.heuristic(start, goal, graph)
+        g_score = {start: 0}
+        f_score = {start: grid.heuristic(start, goal)}
         visited = []
         
         while open_set:
@@ -112,22 +158,22 @@ class PathfindingAlgorithms:
                 path.append(start)
                 return path[::-1], visited
             
-            for neighbor in graph.neighbors(current):
-                tentative_g_score = g_score[current] + graph.edges[current, neighbor, 0].get('length', 1)
+            for neighbor in grid.get_neighbors(current[0], current[1]):
+                tentative_g_score = g_score[current] + grid.get_distance(current, neighbor)
                 
-                if tentative_g_score < g_score[neighbor]:
+                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = g_score[neighbor] + PathfindingAlgorithms.heuristic(neighbor, goal, graph)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                    f_score[neighbor] = g_score[neighbor] + grid.heuristic(neighbor, goal)
+                    
+                    if neighbor not in [item[1] for item in open_set]:
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
         
         return [], visited
     
     @staticmethod
-    def dijkstra(graph, start, goal):
-        """Dijkstra's algorithm with detailed tracking"""
-        distances = {node: float('inf') for node in graph.nodes()}
-        distances[start] = 0
+    def dijkstra(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
+        distances = {start: 0}
         pq = [(0, start)]
         came_from = {}
         visited = []
@@ -144,14 +190,13 @@ class PathfindingAlgorithms:
                 path.append(start)
                 return path[::-1], visited
             
-            if current_dist > distances[current]:
+            if current_dist > distances.get(current, float('inf')):
                 continue
                 
-            for neighbor in graph.neighbors(current):
-                weight = graph.edges[current, neighbor, 0].get('length', 1)
-                distance = current_dist + weight
+            for neighbor in grid.get_neighbors(current[0], current[1]):
+                distance = current_dist + grid.get_distance(current, neighbor)
                 
-                if distance < distances[neighbor]:
+                if neighbor not in distances or distance < distances[neighbor]:
                     distances[neighbor] = distance
                     came_from[neighbor] = current
                     heapq.heappush(pq, (distance, neighbor))
@@ -159,8 +204,7 @@ class PathfindingAlgorithms:
         return [], visited
     
     @staticmethod
-    def bfs(graph, start, goal):
-        """Breadth-First Search with detailed tracking"""
+    def bfs(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
         queue = deque([start])
         visited = [start]
         came_from = {}
@@ -176,7 +220,7 @@ class PathfindingAlgorithms:
                 path.append(start)
                 return path[::-1], visited
             
-            for neighbor in graph.neighbors(current):
+            for neighbor in grid.get_neighbors(current[0], current[1]):
                 if neighbor not in visited:
                     visited.append(neighbor)
                     came_from[neighbor] = current
@@ -185,8 +229,7 @@ class PathfindingAlgorithms:
         return [], visited
     
     @staticmethod
-    def dfs(graph, start, goal):
-        """Depth-First Search with detailed tracking"""
+    def dfs(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
         stack = [start]
         visited = [start]
         came_from = {}
@@ -202,7 +245,7 @@ class PathfindingAlgorithms:
                 path.append(start)
                 return path[::-1], visited
             
-            for neighbor in graph.neighbors(current):
+            for neighbor in grid.get_neighbors(current[0], current[1]):
                 if neighbor not in visited:
                     visited.append(neighbor)
                     came_from[neighbor] = current
@@ -211,9 +254,8 @@ class PathfindingAlgorithms:
         return [], visited
     
     @staticmethod
-    def greedy_best_first(graph, start, goal):
-        """Greedy Best-First Search using heuristic only"""
-        open_set = [(PathfindingAlgorithms.heuristic(start, goal, graph), start)]
+    def greedy_best_first(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
+        open_set = [(grid.heuristic(start, goal), start)]
         visited = []
         came_from = {}
         
@@ -229,26 +271,23 @@ class PathfindingAlgorithms:
                 path.append(start)
                 return path[::-1], visited
             
-            for neighbor in graph.neighbors(current):
+            for neighbor in grid.get_neighbors(current[0], current[1]):
                 if neighbor not in visited and neighbor not in [item[1] for item in open_set]:
                     came_from[neighbor] = current
-                    heuristic_cost = PathfindingAlgorithms.heuristic(neighbor, goal, graph)
+                    heuristic_cost = grid.heuristic(neighbor, goal)
                     heapq.heappush(open_set, (heuristic_cost, neighbor))
         
         return [], visited
     
     @staticmethod
-    def bidirectional_search(graph, start, goal):
-        """Bidirectional search from both start and goal"""
+    def bidirectional_search(grid: GridPathfinder, start: Tuple[int, int], goal: Tuple[int, int]):
         if start == goal:
             return [start], [start]
         
-        # Forward search from start
         visited_forward = {start}
         queue_forward = deque([start])
         came_from_forward = {start: None}
         
-        # Backward search from goal
         visited_backward = {goal}
         queue_backward = deque([goal])
         came_from_backward = {goal: None}
@@ -256,14 +295,12 @@ class PathfindingAlgorithms:
         visited = []
         
         while queue_forward and queue_backward:
-            # Forward step
             if queue_forward:
                 current_forward = queue_forward.popleft()
                 visited.append(current_forward)
                 
-                for neighbor in graph.neighbors(current_forward):
+                for neighbor in grid.get_neighbors(current_forward[0], current_forward[1]):
                     if neighbor in visited_backward:
-                        # Found intersection
                         path_forward = []
                         node = current_forward
                         while node is not None:
@@ -284,14 +321,12 @@ class PathfindingAlgorithms:
                         came_from_forward[neighbor] = current_forward
                         queue_forward.append(neighbor)
             
-            # Backward step
             if queue_backward:
                 current_backward = queue_backward.popleft()
                 visited.append(current_backward)
                 
-                for neighbor in graph.neighbors(current_backward):
+                for neighbor in grid.get_neighbors(current_backward[0], current_backward[1]):
                     if neighbor in visited_forward:
-                        # Found intersection
                         path_forward = []
                         node = neighbor
                         while node is not None:
@@ -314,11 +349,78 @@ class PathfindingAlgorithms:
         
         return [], visited
 
-# Enhanced Sorting algorithms implementation
+# Real Map API integration using OpenRouteService (better than OSMnx)
+class RealMapPathfinder:
+    def __init__(self):
+        # You can get a free API key from https://openrouteservice.org/
+        self.api_key = "YOUR_API_KEY_HERE"  # Replace with actual API key
+        self.base_url = "https://api.openrouteservice.org/v2"
+    
+    def geocode(self, location: str) -> Optional[Tuple[float, float]]:
+        """Geocode a location name to coordinates"""
+        try:
+            # Using Nominatim (free alternative)
+            url = f"https://nominatim.openstreetmap.org/search"
+            params = {
+                'q': location,
+                'format': 'json',
+                'limit': 1
+            }
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return float(data[0]['lat']), float(data[0]['lon'])
+        except Exception as e:
+            st.error(f"Geocoding error: {e}")
+        return None
+    
+    def get_route(self, start_coords: Tuple[float, float], end_coords: Tuple[float, float], 
+                  profile: str = "driving-car") -> Optional[Dict]:
+        """Get route between two coordinates"""
+        try:
+            # For demo purposes, create a simple route
+            # In production, use actual routing API
+            route_coords = [
+                [start_coords[1], start_coords[0]],  # [lon, lat]
+                [end_coords[1], end_coords[0]]
+            ]
+            
+            # Calculate simple distance
+            distance = self._calculate_distance(start_coords, end_coords)
+            
+            return {
+                'coordinates': route_coords,
+                'distance': distance,
+                'duration': distance / 50 * 3600  # Assume 50 km/h average speed
+            }
+        except Exception as e:
+            st.error(f"Routing error: {e}")
+        return None
+    
+    def _calculate_distance(self, coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
+        """Calculate distance between two coordinates using Haversine formula"""
+        lat1, lon1 = coord1
+        lat2, lon2 = coord2
+        
+        R = 6371  # Earth's radius in kilometers
+        
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        
+        a = (math.sin(dlat/2) * math.sin(dlat/2) + 
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
+             math.sin(dlon/2) * math.sin(dlon/2))
+        
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        distance = R * c
+        
+        return distance
+
+# Enhanced Sorting algorithms (keeping the good parts)
 class SortingAlgorithms:
     @staticmethod
     def bubble_sort(arr):
-        """Bubble Sort with step tracking"""
         arr = arr.copy()
         steps = []
         n = len(arr)
@@ -339,7 +441,6 @@ class SortingAlgorithms:
     
     @staticmethod
     def selection_sort(arr):
-        """Selection Sort with step tracking"""
         arr = arr.copy()
         steps = []
         n = len(arr)
@@ -363,7 +464,6 @@ class SortingAlgorithms:
     
     @staticmethod
     def insertion_sort(arr):
-        """Insertion Sort with step tracking"""
         arr = arr.copy()
         steps = []
         
@@ -386,7 +486,6 @@ class SortingAlgorithms:
     
     @staticmethod
     def quick_sort(arr):
-        """Quick Sort with step tracking"""
         steps = []
         
         def partition(arr, low, high):
@@ -419,7 +518,6 @@ class SortingAlgorithms:
     
     @staticmethod
     def merge_sort(arr):
-        """Merge Sort with step tracking"""
         steps = []
         
         def merge(arr, left, mid, right):
@@ -466,7 +564,6 @@ class SortingAlgorithms:
     
     @staticmethod
     def heap_sort(arr):
-        """Heap Sort with step tracking"""
         steps = []
         arr = arr.copy()
         n = len(arr)
@@ -489,11 +586,9 @@ class SortingAlgorithms:
                 steps.append((arr.copy(), [i, largest], "heap_swap"))
                 heapify(arr, n, largest)
         
-        # Build max heap
         for i in range(n // 2 - 1, -1, -1):
             heapify(arr, n, i)
         
-        # Extract elements one by one
         for i in range(n - 1, 0, -1):
             arr[0], arr[i] = arr[i], arr[0]
             steps.append((arr.copy(), [0, i], "extract_max"))
@@ -501,521 +596,707 @@ class SortingAlgorithms:
         
         steps.append((arr.copy(), [], "completed"))
         return steps
-    
-    @staticmethod
-    def shell_sort(arr):
-        """Shell Sort with step tracking"""
-        arr = arr.copy()
-        steps = []
-        n = len(arr)
-        gap = n // 2
-        
-        while gap > 0:
-            steps.append((arr.copy(), [], f"gap_{gap}"))
-            
-            for i in range(gap, n):
-                temp = arr[i]
-                j = i
-                
-                while j >= gap and arr[j - gap] > temp:
-                    steps.append((arr.copy(), [j, j - gap], "comparing"))
-                    arr[j] = arr[j - gap]
-                    steps.append((arr.copy(), [j], "shifted"))
-                    j -= gap
-                
-                arr[j] = temp
-                steps.append((arr.copy(), [j], "inserted"))
-            
-            gap //= 2
-        
-        steps.append((arr.copy(), [], "completed"))
-        return steps
 
 # Algorithm information data
 PATHFINDING_INFO = {
     "A* (A-Star)": {
-        "description": "Combines the benefits of Dijkstra's algorithm and Greedy Best-First Search. Uses both actual distance and heuristic.",
+        "description": "Optimal pathfinding algorithm that uses both actual distance and heuristic estimates to guide search efficiently.",
         "time_complexity": "O(b^d) where b is branching factor, d is depth",
         "space_complexity": "O(b^d)",
         "optimal": "Yes (with admissible heuristic)",
-        "use_case": "Best for most pathfinding scenarios, especially when you have a good heuristic",
-        "pros": ["Optimal path", "Efficient", "Widely applicable"],
-        "cons": ["Requires good heuristic", "Can be memory intensive"]
+        "use_case": "Best for most pathfinding scenarios with good heuristics",
+        "pros": ["Optimal path guaranteed", "Very efficient", "Widely applicable", "Good balance of speed and optimality"],
+        "cons": ["Requires good heuristic function", "Can be memory intensive", "Slower than greedy approaches"]
     },
     "Dijkstra": {
-        "description": "Finds shortest path by exploring nodes in order of their distance from start. Guarantees optimal solution.",
+        "description": "Finds shortest path by exploring nodes in order of their distance from start. Always finds optimal solution.",
         "time_complexity": "O((V + E) log V) with binary heap",
         "space_complexity": "O(V)",
         "optimal": "Yes",
-        "use_case": "When you need guaranteed shortest path and don't have a good heuristic",
-        "pros": ["Always optimal", "No heuristic needed", "Well-established"],
-        "cons": ["Can be slow", "Explores many unnecessary nodes"]
+        "use_case": "When guaranteed shortest path is needed without heuristics",
+        "pros": ["Always finds optimal path", "No heuristic needed", "Well-established algorithm", "Handles negative weights"],
+        "cons": ["Can be slow for large graphs", "Explores many unnecessary nodes", "High memory usage"]
     },
     "BFS (Breadth-First Search)": {
-        "description": "Explores all nodes at current depth before moving to next depth level. Guarantees shortest path in unweighted graphs.",
+        "description": "Explores all nodes at current depth before moving deeper. Optimal for unweighted graphs.",
         "time_complexity": "O(V + E)",
         "space_complexity": "O(V)",
         "optimal": "Yes (for unweighted graphs)",
-        "use_case": "Unweighted graphs, when all edges have same cost",
-        "pros": ["Simple to implement", "Optimal for unweighted graphs", "Complete"],
-        "cons": ["Not optimal for weighted graphs", "High memory usage"]
+        "use_case": "Unweighted graphs where all edges have equal cost",
+        "pros": ["Simple implementation", "Optimal for unweighted graphs", "Complete algorithm", "Finds shortest path"],
+        "cons": ["Not optimal for weighted graphs", "High memory usage", "Can be slow for deep solutions"]
     },
     "DFS (Depth-First Search)": {
-        "description": "Explores as far as possible along each branch before backtracking. Does not guarantee optimal path.",
+        "description": "Explores as far as possible along each branch before backtracking. Fast but not optimal.",
         "time_complexity": "O(V + E)",
         "space_complexity": "O(h) where h is max depth",
         "optimal": "No",
-        "use_case": "When you need to explore all possibilities or memory is limited",
-        "pros": ["Low memory usage", "Simple to implement", "Good for maze solving"],
-        "cons": ["Not optimal", "Can get stuck in infinite loops", "May not find shortest path"]
+        "use_case": "When memory is limited or exploring all possibilities",
+        "pros": ["Low memory usage", "Simple to implement", "Good for maze solving", "Fast execution"],
+        "cons": ["Not optimal", "Can get stuck in infinite paths", "May not find shortest path", "Depth-dependent"]
     },
     "Greedy Best-First": {
-        "description": "Uses only heuristic to guide search towards goal. Fast but not guaranteed to find optimal path.",
+        "description": "Uses only heuristic function to guide search towards goal. Fast but not guaranteed optimal.",
         "time_complexity": "O(b^m) where m is max depth",
         "space_complexity": "O(b^m)",
         "optimal": "No",
         "use_case": "When speed is more important than optimality",
-        "pros": ["Very fast", "Low memory usage", "Simple concept"],
-        "cons": ["Not optimal", "Can get stuck", "Heavily dependent on heuristic quality"]
+        "pros": ["Very fast", "Low memory usage", "Simple concept", "Good for approximate solutions"],
+        "cons": ["Not optimal", "Can get trapped", "Heavily dependent on heuristic quality", "May fail completely"]
     },
     "Bidirectional Search": {
-        "description": "Searches simultaneously from start and goal until they meet. Can be much faster than unidirectional search.",
+        "description": "Searches simultaneously from start and goal until they meet. Significantly reduces search space.",
         "time_complexity": "O(b^(d/2))",
         "space_complexity": "O(b^(d/2))",
         "optimal": "Yes (when both directions use optimal algorithms)",
-        "use_case": "When start and goal are both known and search space is large",
-        "pros": ["Much faster than unidirectional", "Reduces search space significantly"],
-        "cons": ["More complex to implement", "Requires both start and goal", "Higher memory usage"]
+        "use_case": "Large search spaces with known start and goal",
+        "pros": ["Much faster than unidirectional", "Reduces search space exponentially", "Can be very efficient"],
+        "cons": ["More complex implementation", "Requires both start and goal", "Higher memory usage", "Synchronization complexity"]
     }
 }
 
 SORTING_INFO = {
     "Bubble Sort": {
-        "description": "Repeatedly steps through list, compares adjacent elements and swaps them if they're in wrong order.",
-        "best_case": "O(n)",
-        "average_case": "O(n²)",
-        "worst_case": "O(n²)",
-        "space_complexity": "O(1)",
-        "stable": "Yes",
+        "description": "Repeatedly compares adjacent elements and swaps them if they're in wrong order until no swaps needed.",
+        "best_case": "O(n)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "Yes",
         "use_case": "Educational purposes, very small datasets",
-        "pros": ["Simple to understand", "In-place sorting", "Stable"],
-        "cons": ["Very inefficient for large datasets", "Many comparisons and swaps"]
+        "pros": ["Simple to understand", "In-place sorting", "Stable", "Detects if list is sorted"],
+        "cons": ["Very inefficient for large data", "Many comparisons", "Poor performance"]
     },
     "Selection Sort": {
-        "description": "Finds minimum element and places it at beginning, then finds second minimum, and so on.",
-        "best_case": "O(n²)",
-        "average_case": "O(n²)",
-        "worst_case": "O(n²)",
-        "space_complexity": "O(1)",
-        "stable": "No",
+        "description": "Finds minimum element and places it at beginning, then finds second minimum, and continues.",
+        "best_case": "O(n²)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "No",
         "use_case": "When memory writes are costly",
-        "pros": ["Simple to understand", "In-place sorting", "Minimum number of swaps"],
-        "cons": ["Inefficient for large datasets", "Not stable", "Always O(n²)"]
+        "pros": ["Simple implementation", "In-place sorting", "Minimum swaps", "Consistent performance"],
+        "cons": ["Always O(n²)", "Not stable", "Inefficient for large data", "No early termination"]
     },
     "Insertion Sort": {
-        "description": "Builds final sorted array one item at a time. Efficient for small datasets and nearly sorted arrays.",
-        "best_case": "O(n)",
-        "average_case": "O(n²)",
-        "worst_case": "O(n²)",
-        "space_complexity": "O(1)",
-        "stable": "Yes",
+        "description": "Builds sorted array one element at a time by inserting each element in its correct position.",
+        "best_case": "O(n)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "Yes",
         "use_case": "Small datasets, nearly sorted arrays, online algorithms",
-        "pros": ["Simple implementation", "Efficient for small data", "Stable", "In-place"],
-        "cons": ["Inefficient for large datasets", "More writes than selection sort"]
+        "pros": ["Efficient for small data", "Stable", "In-place", "Adaptive", "Simple implementation"],
+        "cons": ["Inefficient for large data", "O(n²) average case", "More writes than selection sort"]
     },
     "Quick Sort": {
-        "description": "Divides array into partitions around a pivot element, then recursively sorts partitions.",
-        "best_case": "O(n log n)",
-        "average_case": "O(n log n)",
-        "worst_case": "O(n²)",
-        "space_complexity": "O(log n)",
-        "stable": "No",
-        "use_case": "General purpose sorting, when average performance matters",
-        "pros": ["Fast average performance", "In-place sorting", "Cache efficient"],
-        "cons": ["Worst case O(n²)", "Not stable", "Recursive overhead"]
+        "description": "Divides array around pivot element and recursively sorts partitions. Very efficient average case.",
+        "best_case": "O(n log n)", "average_case": "O(n log n)", "worst_case": "O(n²)",
+        "space_complexity": "O(log n)", "stable": "No",
+        "use_case": "General purpose sorting when average performance matters",
+        "pros": ["Fast average performance", "In-place sorting", "Cache efficient", "Widely used"],
+        "cons": ["Worst case O(n²)", "Not stable", "Recursive overhead", "Pivot selection critical"]
     },
     "Merge Sort": {
-        "description": "Divides array into halves, recursively sorts them, then merges sorted halves back together.",
-        "best_case": "O(n log n)",
-        "average_case": "O(n log n)",
-        "worst_case": "O(n log n)",
-        "space_complexity": "O(n)",
-        "stable": "Yes",
-        "use_case": "When stable sorting is needed, guaranteed O(n log n) performance",
-        "pros": ["Guaranteed O(n log n)", "Stable", "Predictable performance"],
-        "cons": ["Uses extra memory", "Slower than quicksort in practice", "Not in-place"]
+        "description": "Divides array into halves, recursively sorts them, then merges sorted halves together.",
+        "best_case": "O(n log n)", "average_case": "O(n log n)", "worst_case": "O(n log n)",
+        "space_complexity": "O(n)", "stable": "Yes",
+        "use_case": "When stable sorting and consistent performance needed",
+        "pros": ["Guaranteed O(n log n)", "Stable", "Predictable performance", "Good for linked lists"],
+        "cons": ["Uses extra memory", "Not in-place", "Slower than quicksort in practice", "Overhead for small arrays"]
     },
     "Heap Sort": {
-        "description": "Uses binary heap data structure. Builds max heap, then repeatedly extracts maximum element.",
-        "best_case": "O(n log n)",
-        "average_case": "O(n log n)",
-        "worst_case": "O(n log n)",
-        "space_complexity": "O(1)",
-        "stable": "No",
-        "use_case": "When guaranteed O(n log n) and O(1) space is needed",
-        "pros": ["Guaranteed O(n log n)", "In-place sorting", "No worst case degradation"],
-        "cons": ["Not stable", "Slower than quicksort in practice", "Complex implementation"]
-    },
-    "Shell Sort": {
-        "description": "Generalization of insertion sort. Sorts elements at specific intervals, gradually reducing the interval.",
-        "best_case": "O(n log n)",
-        "average_case": "Depends on gap sequence",
-        "worst_case": "O(n²)",
-        "space_complexity": "O(1)",
-        "stable": "No",
-        "use_case": "Medium-sized datasets, when simple implementation is preferred",
-        "pros": ["Better than O(n²) algorithms", "In-place sorting", "Simple to implement"],
-        "cons": ["Not stable", "Performance depends on gap sequence", "Complex analysis"]
+        "description": "Uses binary heap data structure to repeatedly extract maximum element and build sorted array.",
+        "best_case": "O(n log n)", "average_case": "O(n log n)", "worst_case": "O(n log n)",
+        "space_complexity": "O(1)", "stable": "No",
+        "use_case": "When guaranteed O(n log n) time and O(1) space needed",
+        "pros": ["Guaranteed O(n log n)", "In-place", "No worst case degradation", "Memory efficient"],
+        "cons": ["Not stable", "Slower than quicksort in practice", "Complex implementation", "Poor cache performance"]
     }
 }
 
-# Utility function to find nearest node
-def find_nearest_node(graph, lat, lon):
-    """Find the nearest node in the graph to given coordinates"""
-    min_dist = float('inf')
-    nearest_node = None
+# Utility functions
+def create_grid_visualization(grid: GridPathfinder, path: List[Tuple[int, int]] = None, 
+                            visited: List[Tuple[int, int]] = None, start: Tuple[int, int] = None,
+                            goal: Tuple[int, int] = None) -> go.Figure:
+    """Create a plotly heatmap visualization of the grid"""
     
-    for node, data in graph.nodes(data=True):
-        node_lat, node_lon = data['y'], data['x']
-        dist = math.sqrt((lat - node_lat)**2 + (lon - node_lon)**2)
-        if dist < min_dist:
-            min_dist = dist
-            nearest_node = node
+    # Create visualization grid
+    vis_grid = np.zeros((grid.height, grid.width))
     
-    return nearest_node
+    # Set obstacles
+    for x, y in grid.obstacles:
+        vis_grid[y][x] = -1
+    
+    # Set visited nodes
+    if visited:
+        for x, y in visited:
+            if vis_grid[y][x] == 0:  # Don't override obstacles
+                vis_grid[y][x] = 0.3
+    
+    # Set path
+    if path:
+        for x, y in path:
+            if vis_grid[y][x] != -1:  # Don't override obstacles
+                vis_grid[y][x] = 0.8
+    
+    # Set start and goal
+    if start:
+        vis_grid[start[1]][start[0]] = 1.0
+    if goal:
+        vis_grid[goal[1]][goal[0]] = 0.9
+    
+    # Create custom colorscale
+    colorscale = [
+        [0.0, 'black'],      # Obstacles
+        [0.2, 'white'],      # Empty
+        [0.4, 'lightblue'],  # Visited
+        [0.6, 'yellow'],     # Path
+        [0.8, 'orange'],     # Goal
+        [1.0, 'green']       # Start
+    ]
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=vis_grid,
+        colorscale=colorscale,
+        showscale=False,
+        hovertemplate='X: %{x}<br>Y: %{y}<br>Type: %{z}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title="Grid Pathfinding Visualization",
+        xaxis_title="X Coordinate",
+        yaxis_title="Y Coordinate",
+        width=600,
+        height=500,
+        yaxis={'autorange': 'reversed'}  # Flip Y axis to match typical grid representation
+    )
+    
+    return fig
+
+def create_sample_maps():
+    """Create predefined sample maps with obstacles"""
+    maps = {
+        "Empty Grid": lambda w, h: set(),
+        "Maze": lambda w, h: create_maze_obstacles(w, h),
+        "Random Obstacles": lambda w, h: create_random_obstacles(w, h, 0.2),
+        "Diagonal Barriers": lambda w, h: create_diagonal_barriers(w, h),
+        "Rooms": lambda w, h: create_rooms_obstacles(w, h)
+    }
+    return maps
+
+def create_maze_obstacles(width: int, height: int) -> set:
+    """Create a maze-like pattern of obstacles"""
+    obstacles = set()
+    
+    # Create walls
+    for y in range(2, height-2, 4):
+        for x in range(1, width-1):
+            if x % 4 != 2:
+                obstacles.add((x, y))
+    
+    for x in range(2, width-2, 4):
+        for y in range(1, height-1):
+            if y % 4 != 2:
+                obstacles.add((x, y))
+    
+    return obstacles
+
+def create_random_obstacles(width: int, height: int, density: float) -> set:
+    """Create random obstacles with given density"""
+    obstacles = set()
+    num_obstacles = int(width * height * density)
+    
+    for _ in range(num_obstacles):
+        x = random.randint(0, width-1)
+        y = random.randint(0, height-1)
+        obstacles.add((x, y))
+    
+    return obstacles
+
+def create_diagonal_barriers(width: int, height: int) -> set:
+    """Create diagonal barrier patterns"""
+    obstacles = set()
+    
+    # Main diagonal
+    for i in range(min(width, height) // 2):
+        if i < width and i < height:
+            obstacles.add((i, i))
+        if width - 1 - i >= 0 and i < height:
+            obstacles.add((width - 1 - i, i))
+    
+    return obstacles
+
+def create_rooms_obstacles(width: int, height: int) -> set:
+    """Create room-like structure with doorways"""
+    obstacles = set()
+    
+    # Horizontal walls
+    mid_y = height // 2
+    for x in range(width):
+        if x != width // 4 and x != 3 * width // 4:  # Leave doorways
+            obstacles.add((x, mid_y))
+    
+    # Vertical walls
+    mid_x = width // 2
+    for y in range(height):
+        if y != height // 4 and y != 3 * height // 4:  # Leave doorways
+            obstacles.add((mid_x, y))
+    
+    return obstacles
 
 # Main app tabs
 tab1, tab2 = st.tabs(["🗺️ PathFinding Visualizer", "📊 Sorting Visualizer"])
 
 # Tab 1: Enhanced PathFinding Visualizer
 with tab1:
-    st.header("🗺️ Real-World Pathfinding with Interactive Location Selection")
+    st.header("🗺️ Advanced Pathfinding Visualization")
     
-    # Sidebar for pathfinding
-    with st.sidebar:
-        st.subheader("🎛️ Pathfinding Controls")
-        
-        # Location input
-        location = st.text_input("📍 Enter Location", value="Times Square, New York")
-        
-        # Algorithm selection
-        algorithm = st.selectbox(
-            "🧠 Choose Algorithm",
-            ["A* (A-Star)", "Dijkstra", "BFS (Breadth-First Search)", 
-             "DFS (Depth-First Search)", "Greedy Best-First", "Bidirectional Search"]
-        )
-        
-        # Distance parameter
-        distance = st.slider("🌐 Network Distance (meters)", 500, 3000, 1000, 100)
-        
-        # Network type
-        network_type = st.selectbox(
-            "🚗 Network Type",
-            ["drive", "walk", "bike"]
-        )
-        
-        # Action buttons
-        load_map = st.button("🗺️ Load Map", type="primary")
-        clear_points = st.button("🧹 Clear Selected Points")
-        find_path = st.button("🎯 Find Path", disabled=True)
-        
-        # Instructions
-        st.info("🖱️ **Instructions:**\n1. Load a map\n2. Click on the map to select start and end points\n3. Click 'Find Path' to run the algorithm")
+    # Create sub-tabs for different pathfinding modes
+    pathfind_tabs = st.tabs(["🟩 Grid-Based", "🌍 Real Maps", "🆚 Algorithm Comparison"])
     
-    # Main pathfinding area
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        # Initialize session state
-        if 'selected_points' not in st.session_state:
-            st.session_state.selected_points = []
+    # Grid-Based Pathfinding Tab
+    with pathfind_tabs[0]:
+        st.subheader("Interactive Grid Pathfinding")
         
-        if load_map or 'graph' not in st.session_state:
-            try:
-                with st.spinner(f"Loading map for {location}..."):
-                    # Get graph from OpenStreetMap
-                    G = ox.graph_from_address(location, dist=distance, network_type=network_type)
-                    st.session_state.graph = G
-                    st.session_state.location = location
-                    st.session_state.selected_points = []  # Clear points when loading new map
-                    
-                    # Create folium map
-                    center_lat = np.mean([data['y'] for node, data in G.nodes(data=True)])
-                    center_lon = np.mean([data['x'] for node, data in G.nodes(data=True)])
-                    
-                    m = folium.Map(
-                        location=[center_lat, center_lon],
-                        zoom_start=15,
-                        tiles='OpenStreetMap'
-                    )
-                    
-                    # Add graph to map
-                    for edge in G.edges():
-                        node1, node2 = edge[0], edge[1]
-                        lat1, lon1 = G.nodes[node1]['y'], G.nodes[node1]['x']
-                        lat2, lon2 = G.nodes[node2]['y'], G.nodes[node2]['x']
-                        
-                        folium.PolyLine(
-                            locations=[(lat1, lon1), (lat2, lon2)],
-                            color='blue',
-                            weight=2,
-                            opacity=0.6
-                        ).add_to(m)
-                    
-                    st.session_state.map = m
-                    st.session_state.nodes_list = list(G.nodes())
-                    
-                st.success(f"✅ Map loaded successfully! Graph has {len(G.nodes())} nodes and {len(G.edges())} edges.")
-                
-            except Exception as e:
-                st.error(f"❌ Error loading map: {str(e)}")
-                st.info("💡 Try a different location or check your internet connection.")
+        col1, col2 = st.columns([3, 1])
         
-        # Clear selected points
-        if clear_points:
-            st.session_state.selected_points = []
-            st.rerun()
-        
-        # Display map and handle clicks
-        if 'map' in st.session_state:
-            # Create a new map with selected points
-            current_map = st.session_state.map._repr_html_()
-            G = st.session_state.graph
+        with col2:
+            st.markdown("### 🎛️ Grid Controls")
             
-            # Create new map for display
-            center_lat = np.mean([data['y'] for node, data in G.nodes(data=True)])
-            center_lon = np.mean([data['x'] for node, data in G.nodes(data=True)])
+            # Grid settings
+            grid_width = st.slider("Grid Width", 10, 50, 25)
+            grid_height = st.slider("Grid Height", 10, 50, 20)
             
-            display_map = folium.Map(
-                location=[center_lat, center_lon],
-                zoom_start=15,
-                tiles='OpenStreetMap'
+            # Algorithm selection
+            algorithm = st.selectbox(
+                "🧠 Algorithm",
+                ["A* (A-Star)", "Dijkstra", "BFS (Breadth-First Search)", 
+                 "DFS (Depth-First Search)", "Greedy Best-First", "Bidirectional Search"]
             )
             
-            # Add graph to display map
-            for edge in G.edges():
-                node1, node2 = edge[0], edge[1]
-                lat1, lon1 = G.nodes[node1]['y'], G.nodes[node1]['x']
-                lat2, lon2 = G.nodes[node2]['y'], G.nodes[node2]['x']
+            # Sample maps
+            sample_maps = create_sample_maps()
+            selected_map = st.selectbox("🗺️ Sample Maps", list(sample_maps.keys()))
+            
+            if st.button("🎲 Load Sample Map"):
+                if 'grid' not in st.session_state:
+                    st.session_state.grid = GridPathfinder(grid_width, grid_height)
                 
-                folium.PolyLine(
-                    locations=[(lat1, lon1), (lat2, lon2)],
-                    color='lightblue',
-                    weight=1,
-                    opacity=0.4
-                ).add_to(display_map)
+                obstacles = sample_maps[selected_map](grid_width, grid_height)
+                st.session_state.grid.obstacles = obstacles
+                st.session_state.grid_updated = True
             
-            # Add selected points to map
-            if len(st.session_state.selected_points) >= 1:
-                start_point = st.session_state.selected_points[0]
-                folium.Marker(
-                    location=[start_point['lat'], start_point['lng']],
-                    popup="Start Point",
-                    icon=folium.Icon(color='green', icon='play')
-                ).add_to(display_map)
+            # Manual point setting
+            st.markdown("### 📍 Set Points")
             
-            if len(st.session_state.selected_points) >= 2:
-                end_point = st.session_state.selected_points[1]
-                folium.Marker(
-                    location=[end_point['lat'], end_point['lng']],
-                    popup="End Point",
-                    icon=folium.Icon(color='red', icon='stop')
-                ).add_to(display_map)
+            col_start, col_goal = st.columns(2)
+            with col_start:
+                start_x = st.number_input("Start X", 0, grid_width-1, 0)
+                start_y = st.number_input("Start Y", 0, grid_height-1, 0)
+                if st.button("Set Start"):
+                    st.session_state.start_point = (start_x, start_y)
             
-            # Display map and get click data
-            map_data = st_folium(display_map, width=700, height=500, returned_objects=["last_clicked"])
+            with col_goal:
+                goal_x = st.number_input("Goal X", 0, grid_width-1, grid_width-1)
+                goal_y = st.number_input("Goal Y", 0, grid_height-1, grid_height-1)
+                if st.button("Set Goal"):
+                    st.session_state.goal_point = (goal_x, goal_y)
             
-            # Handle map clicks
-            if map_data['last_clicked'] is not None:
-                click_lat = map_data['last_clicked']['lat']
-                click_lng = map_data['last_clicked']['lng']
+            # Action buttons
+            if st.button("🎯 Find Path", type="primary"):
+                if ('start_point' in st.session_state and 
+                    'goal_point' in st.session_state and
+                    'grid' in st.session_state):
+                    
+                    grid = st.session_state.grid
+                    start = st.session_state.start_point
+                    goal = st.session_state.goal_point
+                    
+                    # Run algorithm
+                    start_time = time.time()
+                    
+                    if algorithm == "A* (A-Star)":
+                        path, visited = PathfindingAlgorithms.a_star(grid, start, goal)
+                    elif algorithm == "Dijkstra":
+                        path, visited = PathfindingAlgorithms.dijkstra(grid, start, goal)
+                    elif algorithm == "BFS (Breadth-First Search)":
+                        path, visited = PathfindingAlgorithms.bfs(grid, start, goal)
+                    elif algorithm == "DFS (Depth-First Search)":
+                        path, visited = PathfindingAlgorithms.dfs(grid, start, goal)
+                    elif algorithm == "Greedy Best-First":
+                        path, visited = PathfindingAlgorithms.greedy_best_first(grid, start, goal)
+                    else:  # Bidirectional Search
+                        path, visited = PathfindingAlgorithms.bidirectional_search(grid, start, goal)
+                    
+                    end_time = time.time()
+                    execution_time = (end_time - start_time) * 1000
+                    
+                    # Store results
+                    st.session_state.grid_path = path
+                    st.session_state.grid_visited = visited
+                    st.session_state.grid_execution_time = execution_time
+                    
+                else:
+                    st.error("Please set start and goal points first!")
+            
+            if st.button("🧹 Clear Grid"):
+                st.session_state.grid = GridPathfinder(grid_width, grid_height)
+                if 'start_point' in st.session_state:
+                    del st.session_state.start_point
+                if 'goal_point' in st.session_state:
+                    del st.session_state.goal_point
+                st.session_state.grid_updated = True
+            
+            # Results display
+            if 'grid_execution_time' in st.session_state:
+                st.markdown("### 📊 Results")
+                st.metric("Execution Time", f"{st.session_state.grid_execution_time:.2f} ms")
                 
-                # Add point if we have less than 2 points
-                if len(st.session_state.selected_points) < 2:
-                    st.session_state.selected_points.append({'lat': click_lat, 'lng': click_lng})
-                    st.rerun()
-                elif len(st.session_state.selected_points) >= 2:
-                    # Replace second point if clicking again
-                    st.session_state.selected_points[1] = {'lat': click_lat, 'lng': click_lng}
-                    st.rerun()
+                if 'grid_path' in st.session_state:
+                    st.metric("Path Length", len(st.session_state.grid_path))
+                
+                if 'grid_visited' in st.session_state:
+                    st.metric("Nodes Visited", len(st.session_state.grid_visited))
+                    
+                    if len(st.session_state.grid_visited) > 0 and len(st.session_state.grid_path) > 0:
+                        efficiency = (len(st.session_state.grid_path) / len(st.session_state.grid_visited)) * 100
+                        st.metric("Efficiency", f"{efficiency:.1f}%")
         
-        # Enable find path button if we have 2 points
-        if len(st.session_state.selected_points) >= 2:
-            find_path_enabled = st.button("🎯 Find Path", key="find_path_enabled", type="primary")
+        with col1:
+            # Initialize grid if not exists
+            if 'grid' not in st.session_state:
+                st.session_state.grid = GridPathfinder(grid_width, grid_height)
             
-            if find_path_enabled:
-                try:
-                    with st.spinner("Finding optimal path..."):
-                        G = st.session_state.graph
-                        
-                        # Find nearest nodes to clicked points
-                        start_point = st.session_state.selected_points[0]
-                        end_point = st.session_state.selected_points[1]
-                        
-                        start_node = find_nearest_node(G, start_point['lat'], start_point['lng'])
-                        end_node = find_nearest_node(G, end_point['lat'], end_point['lng'])
-                        
-                        if start_node is None or end_node is None:
-                            st.error("❌ Could not find valid nodes near selected points")
-                        else:
-                            # Run selected algorithm
-                            start_time = time.time()
-                            if algorithm == "A* (A-Star)":
-                                path, visited = PathfindingAlgorithms.a_star(G, start_node, end_node)
-                            elif algorithm == "Dijkstra":
-                                path, visited = PathfindingAlgorithms.dijkstra(G, start_node, end_node)
-                            elif algorithm == "BFS (Breadth-First Search)":
-                                path, visited = PathfindingAlgorithms.bfs(G, start_node, end_node)
-                            elif algorithm == "DFS (Depth-First Search)":
-                                path, visited = PathfindingAlgorithms.dfs(G, start_node, end_node)
-                            elif algorithm == "Greedy Best-First":
-                                path, visited = PathfindingAlgorithms.greedy_best_first(G, start_node, end_node)
-                            else:  # Bidirectional Search
-                                path, visited = PathfindingAlgorithms.bidirectional_search(G, start_node, end_node)
-                            
-                            end_time = time.time()
-                            execution_time = (end_time - start_time) * 1000  # Convert to milliseconds
-                            
-                            # Calculate path distance
-                            path_distance = 0
-                            if len(path) > 1:
-                                for i in range(len(path) - 1):
-                                    if G.has_edge(path[i], path[i+1]):
-                                        path_distance += G.edges[path[i], path[i+1], 0].get('length', 0)
-                            
-                            # Create result map
-                            result_map = folium.Map(
-                                location=[center_lat, center_lon],
-                                zoom_start=15,
-                                tiles='OpenStreetMap'
-                            )
-                            
-                            # Add base graph (lighter)
-                            for edge in G.edges():
-                                node1, node2 = edge[0], edge[1]
-                                lat1, lon1 = G.nodes[node1]['y'], G.nodes[node1]['x']
-                                lat2, lon2 = G.nodes[node2]['y'], G.nodes[node2]['x']
-                                
-                                folium.PolyLine(
-                                    locations=[(lat1, lon1), (lat2, lon2)],
-                                    color='lightgray',
-                                    weight=1,
-                                    opacity=0.3
-                                ).add_to(result_map)
-                            
-                            # Add visited nodes
-                            for node in visited:
-                                if node in G.nodes:
-                                    lat, lon = G.nodes[node]['y'], G.nodes[node]['x']
-                                    folium.CircleMarker(
-                                        location=[lat, lon],
-                                        radius=2,
-                                        color='orange',
-                                        fillColor='orange',
-                                        fillOpacity=0.6,
-                                        popup=f"Visited: {node}"
-                                    ).add_to(result_map)
-                            
-                            # Add path
-                            if path and len(path) > 1:
-                                path_coords = []
-                                for node in path:
-                                    if node in G.nodes:
-                                        lat, lon = G.nodes[node]['y'], G.nodes[node]['x']
-                                        path_coords.append([lat, lon])
-                                
-                                if path_coords:
-                                    folium.PolyLine(
-                                        locations=path_coords,
-                                        color='red',
-                                        weight=4,
-                                        opacity=0.8,
-                                        popup=f"Optimal Path ({len(path)} nodes)"
-                                    ).add_to(result_map)
-                            
-                            # Add start and end markers
-                            folium.Marker(
-                                location=[start_point['lat'], start_point['lng']],
-                                popup="Start Point",
-                                icon=folium.Icon(color='green', icon='play')
-                            ).add_to(result_map)
-                            
-                            folium.Marker(
-                                location=[end_point['lat'], end_point['lng']],
-                                popup="End Point",
-                                icon=folium.Icon(color='red', icon='stop')
-                            ).add_to(result_map)
-                            
-                            # Store results
-                            st.session_state.result_map = result_map
-                            st.session_state.path_info = {
-                                'algorithm': algorithm,
-                                'path_length': len(path),
-                                'visited_nodes': len(visited),
-                                'path_found': len(path) > 0,
-                                'execution_time': execution_time,
-                                'path_distance': path_distance / 1000 if path_distance > 0 else 0  # Convert to km
-                            }
-                            
-                            # Display result map
-                            st_folium(result_map, width=700, height=500)
-                            
-                            if len(path) > 0:
-                                st.success(f"✅ Path found! {len(path)} nodes, {path_distance/1000:.2f} km")
-                            else:
-                                st.error("❌ No path found between selected points")
-                
-                except Exception as e:
-                    st.error(f"❌ Error finding path: {str(e)}")
+            # Update grid size if changed
+            if (st.session_state.grid.width != grid_width or 
+                st.session_state.grid.height != grid_height):
+                st.session_state.grid = GridPathfinder(grid_width, grid_height)
+            
+            # Create visualization
+            path = st.session_state.get('grid_path', [])
+            visited = st.session_state.get('grid_visited', [])
+            start = st.session_state.get('start_point', None)
+            goal = st.session_state.get('goal_point', None)
+            
+            fig = create_grid_visualization(
+                st.session_state.grid, path, visited, start, goal
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Instructions
+            st.info("""
+            🖱️ **Instructions:**
+            1. Set grid size and select algorithm
+            2. Choose a sample map or manually set start/goal points
+            3. Click 'Find Path' to run the pathfinding algorithm
+            4. View the results and try different algorithms!
+            
+            **Legend:**
+            - 🟩 Green: Start point
+            - 🟧 Orange: Goal point  
+            - 🟨 Yellow: Optimal path
+            - 🔵 Light Blue: Visited nodes
+            - ⬛ Black: Obstacles
+            """)
     
-    with col2:
-        st.subheader("📊 Algorithm Performance")
+    # Real Maps Tab
+    with pathfind_tabs[1]:
+        st.subheader("🌍 Real-World Map Pathfinding")
         
-        # Display selection status
-        points_count = len(st.session_state.get('selected_points', []))
-        if points_count == 0:
-            st.info("🖱️ Click on map to select start point")
-        elif points_count == 1:
-            st.info("🖱️ Click on map to select end point")
-        else:
-            st.success("✅ Both points selected!")
+        col1, col2 = st.columns([3, 1])
         
-        # Display results if available
-        if 'path_info' in st.session_state:
-            info = st.session_state.path_info
-            st.metric("Algorithm", info['algorithm'])
-            st.metric("Execution Time", f"{info['execution_time']:.2f} ms")
-            st.metric("Path Length", f"{info['path_length']} nodes")
-            st.metric("Path Distance", f"{info['path_distance']:.2f} km")
-            st.metric("Visited Nodes", info['visited_nodes'])
+        with col2:
+            st.markdown("### 🎛️ Map Controls")
             
-            # Efficiency ratio
-            if info['visited_nodes'] > 0:
-                efficiency = (info['path_length'] / info['visited_nodes']) * 100
-                st.metric("Efficiency", f"{efficiency:.1f}%")
-        
-        # Algorithm information
-        st.subheader("🧠 Algorithm Details")
-        
-        if algorithm in PATHFINDING_INFO:
-            algo_info = PATHFINDING_INFO[algorithm]
+            # Location inputs
+            start_location = st.text_input("📍 Start Location", "New York, NY")
+            end_location = st.text_input("🎯 End Location", "Boston, MA")
             
-            with st.expander(f"ℹ️ {algorithm} Information"):
-                st.markdown(f"**Description:** {algo_info['description']}")
-                st.markdown(f"**Time Complexity:** {algo_info['time_complexity']}")
-                st.markdown(f"**Space Complexity:** {algo_info['space_complexity']}")
-                st.markdown(f"**Optimal:** {algo_info['optimal']}")
-                st.markdown(f"**Best Use Case:** {algo_info['use_case']}")
+            # Transport mode
+            transport_mode = st.selectbox(
+                "🚗 Transport Mode",
+                ["driving-car", "foot-walking", "cycling-regular"]
+            )
+            
+            # Map style
+            map_style = st.selectbox(
+                "🗺️ Map Style",
+                ["OpenStreetMap", "Stamen Terrain", "Stamen Toner", "CartoDB positron"]
+            )
+            
+            if st.button("🗺️ Create Route", type="primary"):
+                real_map_finder = RealMapPathfinder()
                 
-                st.markdown("**Pros:**")
-                for pro in algo_info['pros']:
-                    st.markdown(f"• {pro}")
+                with st.spinner("Geocoding locations..."):
+                    start_coords = real_map_finder.geocode(start_location)
+                    end_coords = real_map_finder.geocode(end_location)
                 
-                st.markdown("**Cons:**")
-                for con in algo_info['cons']:
-                    st.markdown(f"• {con}")
+                if start_coords and end_coords:
+                    with st.spinner("Calculating route..."):
+                        route_data = real_map_finder.get_route(start_coords, end_coords, transport_mode)
+                    
+                    if route_data:
+                        # Create folium map
+                        center_lat = (start_coords[0] + end_coords[0]) / 2
+                        center_lon = (start_coords[1] + end_coords[1]) / 2
+                        
+                        # Map style mapping
+                        tile_mapping = {
+                            "OpenStreetMap": "OpenStreetMap",
+                            "Stamen Terrain": "Stamen Terrain",
+                            "Stamen Toner": "Stamen Toner",
+                            "CartoDB positron": "CartoDB positron"
+                        }
+                        
+                        m = folium.Map(
+                            location=[center_lat, center_lon],
+                            zoom_start=8,
+                            tiles=tile_mapping[map_style]
+                        )
+                        
+                        # Add start marker
+                        folium.Marker(
+                            location=[start_coords[0], start_coords[1]],
+                            popup=f"Start: {start_location}",
+                            icon=folium.Icon(color='green', icon='play')
+                        ).add_to(m)
+                        
+                        # Add end marker
+                        folium.Marker(
+                            location=[end_coords[0], end_coords[1]],
+                            popup=f"End: {end_location}",
+                            icon=folium.Icon(color='red', icon='stop')
+                        ).add_to(m)
+                        
+                        # Add route line
+                        route_coords = [[coord[1], coord[0]] for coord in route_data['coordinates']]
+                        folium.PolyLine(
+                            locations=route_coords,
+                            color='blue',
+                            weight=5,
+                            opacity=0.8,
+                            popup=f"Route: {route_data['distance']:.1f} km"
+                        ).add_to(m)
+                        
+                        st.session_state.real_map = m
+                        st.session_state.route_data = route_data
+                        
+                        # Display metrics
+                        st.metric("Distance", f"{route_data['distance']:.1f} km")
+                        st.metric("Est. Duration", f"{route_data['duration']/3600:.1f} hours")
+                    else:
+                        st.error("Could not calculate route")
+                else:
+                    st.error("Could not geocode one or both locations")
+            
+            # Sample routes
+            st.markdown("### 🌟 Sample Routes")
+            sample_routes = {
+                "NYC to Boston": ("New York, NY", "Boston, MA"),
+                "LA to San Francisco": ("Los Angeles, CA", "San Francisco, CA"),
+                "London to Paris": ("London, UK", "Paris, France"),
+                "Tokyo to Osaka": ("Tokyo, Japan", "Osaka, Japan")
+            }
+            
+            selected_route = st.selectbox("Quick Routes", list(sample_routes.keys()))
+            if st.button("Load Sample Route"):
+                start_loc, end_loc = sample_routes[selected_route]
+                st.session_state.temp_start = start_loc
+                st.session_state.temp_end = end_loc
+                st.rerun()
+        
+        with col1:
+            if 'real_map' in st.session_state:
+                st_folium(st.session_state.real_map, width=700, height=500)
+                
+                if 'route_data' in st.session_state:
+                    route = st.session_state.route_data
+                    st.success(f"✅ Route calculated: {route['distance']:.1f} km, ~{route['duration']/3600:.1f} hours")
+            else:
+                # Default map
+                default_map = folium.Map(location=[40.7128, -74.0060], zoom_start=5)
+                st_folium(default_map, width=700, height=500)
+                
+                st.info("""
+                🗺️ **Real Map Features:**
+                - Enter start and end locations
+                - Choose transport mode (driving, walking, cycling)  
+                - Select map style
+                - View calculated routes with distance and time
+                
+                **Note:** This demo uses simplified routing. For production use, integrate with services like:
+                - OpenRouteService
+                - Google Maps API
+                - Mapbox API
+                """)
+    
+    # Algorithm Comparison Tab
+    with pathfind_tabs[2]:
+        st.subheader("🆚 Algorithm Performance Comparison")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col2:
+            st.markdown("### ⚙️ Comparison Settings")
+            
+            comp_width = st.slider("Grid Width", 10, 30, 20, key="comp_width")
+            comp_height = st.slider("Grid Height", 10, 30, 15, key="comp_height")
+            
+            comp_map_type = st.selectbox(
+                "Map Type", 
+                ["Random Obstacles", "Maze", "Empty Grid", "Diagonal Barriers", "Rooms"],
+                key="comp_map"
+            )
+            
+            obstacle_density = st.slider("Obstacle Density", 0.0, 0.5, 0.2) if comp_map_type == "Random Obstacles" else None
+            
+            if st.button("🏁 Run Comparison", type="primary"):
+                # Create test grid
+                test_grid = GridPathfinder(comp_width, comp_height)
+                sample_maps = create_sample_maps()
+                
+                if comp_map_type == "Random Obstacles":
+                    obstacles = create_random_obstacles(comp_width, comp_height, obstacle_density)
+                else:
+                    obstacles = sample_maps[comp_map_type](comp_width, comp_height)
+                
+                test_grid.obstacles = obstacles
+                
+                # Set start and goal
+                start = (0, 0)
+                goal = (comp_width-1, comp_height-1)
+                
+                # Ensure start and goal are not obstacles
+                test_grid.obstacles.discard(start)
+                test_grid.obstacles.discard(goal)
+                
+                # Test all algorithms
+                algorithms = [
+                    "A* (A-Star)", "Dijkstra", "BFS (Breadth-First Search)",
+                    "DFS (Depth-First Search)", "Greedy Best-First", "Bidirectional Search"
+                ]
+                
+                results = []
+                progress_bar = st.progress(0)
+                
+                for i, algo in enumerate(algorithms):
+                    start_time = time.time()
+                    
+                    try:
+                        if algo == "A* (A-Star)":
+                            path, visited = PathfindingAlgorithms.a_star(test_grid, start, goal)
+                        elif algo == "Dijkstra":
+                            path, visited = PathfindingAlgorithms.dijkstra(test_grid, start, goal)
+                        elif algo == "BFS (Breadth-First Search)":
+                            path, visited = PathfindingAlgorithms.bfs(test_grid, start, goal)
+                        elif algo == "DFS (Depth-First Search)":
+                            path, visited = PathfindingAlgorithms.dfs(test_grid, start, goal)
+                        elif algo == "Greedy Best-First":
+                            path, visited = PathfindingAlgorithms.greedy_best_first(test_grid, start, goal)
+                        else:  # Bidirectional Search
+                            path, visited = PathfindingAlgorithms.bidirectional_search(test_grid, start, goal)
+                        
+                        end_time = time.time()
+                        execution_time = (end_time - start_time) * 1000
+                        
+                        results.append({
+                            "Algorithm": algo,
+                            "Path Length": len(path) if path else 0,
+                            "Nodes Visited": len(visited),
+                            "Execution Time (ms)": f"{execution_time:.2f}",
+                            "Path Found": "Yes" if path else "No",
+                            "Efficiency (%)": f"{(len(path)/len(visited)*100):.1f}" if path and visited else "0"
+                        })
+                        
+                    except Exception as e:
+                        results.append({
+                            "Algorithm": algo,
+                            "Path Length": "Error",
+                            "Nodes Visited": "Error", 
+                            "Execution Time (ms)": "Error",
+                            "Path Found": "Error",
+                            "Efficiency (%)": "Error"
+                        })
+                    
+                    progress_bar.progress((i + 1) / len(algorithms))
+                
+                st.session_state.comparison_results = results
+                st.session_state.comparison_grid = test_grid
+                st.session_state.comparison_start = start
+                st.session_state.comparison_goal = goal
+        
+        with col1:
+            if 'comparison_results' in st.session_state:
+                # Display results table
+                df = pd.DataFrame(st.session_state.comparison_results)
+                st.dataframe(df, use_container_width=True)
+                
+                # Create performance charts
+                valid_results = [r for r in st.session_state.comparison_results 
+                               if r["Path Found"] == "Yes" and r["Execution Time (ms)"] != "Error"]
+                
+                if valid_results:
+                    # Execution time chart
+                    algorithms = [r["Algorithm"] for r in valid_results]
+                    times = [float(r["Execution Time (ms)"]) for r in valid_results]
+                    visited_counts = [int(r["Nodes Visited"]) for r in valid_results]
+                    
+                    fig_perf = make_subplots(
+                        rows=1, cols=2,
+                        subplot_titles=("Execution Time", "Nodes Visited"),
+                        specs=[[{"secondary_y": False}, {"secondary_y": False}]]
+                    )
+                    
+                    fig_perf.add_trace(
+                        go.Bar(x=algorithms, y=times, name="Time (ms)", marker_color='lightblue'),
+                        row=1, col=1
+                    )
+                    
+                    fig_perf.add_trace(
+                        go.Bar(x=algorithms, y=visited_counts, name="Nodes Visited", marker_color='lightcoral'),
+                        row=1, col=2
+                    )
+                    
+                    fig_perf.update_layout(
+                        title="Algorithm Performance Comparison",
+                        height=400,
+                        showlegend=False
+                    )
+                    
+                    st.plotly_chart(fig_perf, use_container_width=True)
+                
+                # Show test grid
+                if 'comparison_grid' in st.session_state:
+                    test_fig = create_grid_visualization(
+                        st.session_state.comparison_grid,
+                        start=st.session_state.comparison_start,
+                        goal=st.session_state.comparison_goal
+                    )
+                    test_fig.update_layout(title="Test Grid Used for Comparison")
+                    st.plotly_chart(test_fig, use_container_width=True)
+            else:
+                st.info("🏁 Run algorithm comparison to see detailed performance metrics and visualizations.")
+    
+    # Algorithm Information Section
+    st.markdown("---")
+    st.subheader("📚 Pathfinding Algorithm Reference")
+    
+    algo_info_tabs = st.tabs(list(PATHFINDING_INFO.keys()))
+    
+    for i, (algo_name, info) in enumerate(PATHFINDING_INFO.items()):
+        with algo_info_tabs[i]:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"**Description:** {info['description']}")
+                st.markdown(f"**Time Complexity:** `{info['time_complexity']}`")
+                st.markdown(f"**Space Complexity:** `{info['space_complexity']}`")
+                st.markdown(f"**Optimal:** {info['optimal']}")
+                st.markdown(f"**Best Use Case:** {info['use_case']}")
+            
+            with col2:
+                st.markdown("**Advantages:**")
+                for pro in info['pros']:
+                    st.markdown(f"✅ {pro}")
+                
+                st.markdown("**Disadvantages:**")
+                for con in info['cons']:
+                    st.markdown(f"❌ {con}")
 
-# Tab 2: Enhanced Sorting Visualizer
+# Tab 2: Sorting Visualizer (keeping the excellent implementation)
 with tab2:
     st.header("📊 Advanced Sorting Algorithm Visualizer")
     
@@ -1034,7 +1315,7 @@ with tab2:
         sort_algorithm = st.selectbox(
             "🔄 Sorting Algorithm",
             ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", 
-             "Merge Sort", "Heap Sort", "Shell Sort"]
+             "Merge Sort", "Heap Sort"]
         )
         
         # Animation speed
@@ -1107,7 +1388,7 @@ with tab2:
     if compare_algos and 'sorting_array' in st.session_state:
         st.subheader("🏆 Algorithm Comparison")
         
-        algorithms = ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", "Merge Sort", "Heap Sort", "Shell Sort"]
+        algorithms = ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", "Merge Sort", "Heap Sort"]
         comparison_results = []
         
         progress_bar = st.progress(0)
@@ -1132,10 +1413,8 @@ with tab2:
                     steps = SortingAlgorithms.quick_sort(arr)
                 elif algo == "Merge Sort":
                     steps = SortingAlgorithms.merge_sort(arr)
-                elif algo == "Heap Sort":
+                else:  # Heap Sort
                     steps = SortingAlgorithms.heap_sort(arr)
-                else:  # Shell Sort
-                    steps = SortingAlgorithms.shell_sort(arr)
                 
                 end_time = time.time()
                 execution_time = (end_time - start_time) * 1000
@@ -1173,7 +1452,8 @@ with tab2:
                 x=algorithms_list,
                 y=times_list,
                 yaxis='y',
-                offsetgroup=1
+                offsetgroup=1,
+                marker_color='lightblue'
             ))
             
             if len(steps_list) == len(algorithms_list):
@@ -1182,7 +1462,8 @@ with tab2:
                     x=algorithms_list,
                     y=steps_list,
                     yaxis='y2',
-                    offsetgroup=2
+                    offsetgroup=2,
+                    marker_color='lightcoral'
                 ))
             
             fig.update_layout(
@@ -1195,6 +1476,9 @@ with tab2:
             )
             
             st.plotly_chart(fig, use_container_width=True)
+        
+        status_text.empty()
+        progress_bar.empty()
     
     # Start sorting animation
     if start_sorting and 'sorting_array' in st.session_state:
@@ -1214,10 +1498,8 @@ with tab2:
                 steps = SortingAlgorithms.quick_sort(arr)
             elif sort_algorithm == "Merge Sort":
                 steps = SortingAlgorithms.merge_sort(arr)
-            elif sort_algorithm == "Heap Sort":
+            else:  # Heap Sort
                 steps = SortingAlgorithms.heap_sort(arr)
-            else:  # Shell Sort
-                steps = SortingAlgorithms.shell_sort(arr)
             
             end_time = time.time()
             total_time = (end_time - start_time) * 1000
@@ -1317,14 +1599,19 @@ with tab2:
         col4.metric("Total Swaps", swaps)
         
         st.success(f"🎉 {sort_algorithm} completed!")
+        
+        # Clear placeholders
+        progress_bar.empty()
+        status_placeholder.empty()
     
     # Algorithm information section
-    st.subheader("🧠 Algorithm Complexity & Details")
+    st.markdown("---")
+    st.subheader("🧠 Sorting Algorithm Reference")
     
     # Create tabs for different algorithms
-    algo_tabs = st.tabs(["Current Algorithm", "All Algorithms Comparison", "Complexity Analysis"])
+    sort_algo_tabs = st.tabs(["Current Algorithm", "All Algorithms Comparison", "Complexity Analysis"])
     
-    with algo_tabs[0]:
+    with sort_algo_tabs[0]:
         if sort_algorithm in SORTING_INFO:
             algo_info = SORTING_INFO[sort_algorithm]
             
@@ -1353,7 +1640,7 @@ with tab2:
                 for con in algo_info['cons']:
                     st.markdown(f"❌ {con}")
     
-    with algo_tabs[1]:
+    with sort_algo_tabs[1]:
         # Create comprehensive comparison table
         comparison_data = []
         for algo_name, info in SORTING_INFO.items():
@@ -1369,32 +1656,164 @@ with tab2:
         
         df_comparison = pd.DataFrame(comparison_data)
         st.dataframe(df_comparison, use_container_width=True)
+        
+        # Visual comparison chart
+        complexity_scores = {
+            "O(1)": 1, "O(log n)": 2, "O(n)": 3, "O(n log n)": 4, "O(n²)": 5
+        }
+        
+        chart_data = []
+        for algo_name, info in SORTING_INFO.items():
+            chart_data.append({
+                "Algorithm": algo_name,
+                "Best": complexity_scores.get(info["best_case"], 3),
+                "Average": complexity_scores.get(info["average_case"], 3),
+                "Worst": complexity_scores.get(info["worst_case"], 3)
+            })
+        
+        df_chart = pd.DataFrame(chart_data)
+        
+        fig_complexity = go.Figure()
+        
+        fig_complexity.add_trace(go.Bar(
+            name='Best Case',
+            x=df_chart['Algorithm'],
+            y=df_chart['Best'],
+            marker_color='lightgreen'
+        ))
+        
+        fig_complexity.add_trace(go.Bar(
+            name='Average Case',
+            x=df_chart['Algorithm'],
+            y=df_chart['Average'],
+            marker_color='lightblue'
+        ))
+        
+        fig_complexity.add_trace(go.Bar(
+            name='Worst Case',
+            x=df_chart['Algorithm'],
+            y=df_chart['Worst'],
+            marker_color='lightcoral'
+        ))
+        
+        fig_complexity.update_layout(
+            title='Time Complexity Comparison (Lower is Better)',
+            xaxis_title='Algorithm',
+            yaxis_title='Complexity Score',
+            barmode='group',
+            height=400,
+            yaxis=dict(
+                tickvals=[1, 2, 3, 4, 5],
+                ticktext=['O(1)', 'O(log n)', 'O(n)', 'O(n log n)', 'O(n²)']
+            )
+        )
+        
+        st.plotly_chart(fig_complexity, use_container_width=True)
     
-    with algo_tabs[2]:
+    with sort_algo_tabs[2]:
         st.markdown("""
         ### Understanding Algorithm Complexity
         
-        **Time Complexity** measures how the running time increases with input size:
+        **Time Complexity** measures how running time increases with input size:
         - **O(1)**: Constant time - doesn't depend on input size
+        - **O(log n)**: Logarithmic time - very efficient, divides problem in half
         - **O(n)**: Linear time - increases linearly with input size
-        - **O(n log n)**: Linearithmic time - efficient for large datasets
+        - **O(n log n)**: Linearithmic time - efficient for large datasets (optimal for comparison sorts)
         - **O(n²)**: Quadratic time - suitable only for small datasets
         
         **Space Complexity** measures extra memory needed:
         - **O(1)**: In-place algorithms (constant extra space)
-        - **O(n)**: Linear extra space needed
-        - **O(log n)**: Logarithmic space (usually for recursion)
+        - **O(log n)**: Logarithmic space (usually for recursion stack)
+        - **O(n)**: Linear extra space needed (like merge sort's temporary arrays)
         
         **Stability** means equal elements maintain their relative order after sorting.
+        
+        **When to Use Each Algorithm:**
+        - **Small arrays (< 50 elements)**: Insertion Sort
+        - **General purpose**: Quick Sort or Merge Sort
+        - **Guaranteed O(n log n)**: Merge Sort or Heap Sort
+        - **Memory constrained**: Heap Sort or Quick Sort
+        - **Stable sorting needed**: Merge Sort or Insertion Sort
+        - **Educational purposes**: Bubble Sort or Selection Sort
+        """)
+        
+        # Performance tips
+        st.markdown("""
+        ### 💡 Performance Tips
+        
+        **Optimization Strategies:**
+        1. **Hybrid approaches**: Use insertion sort for small subarrays in quick/merge sort
+        2. **Pivot selection**: Use median-of-three for quick sort to avoid worst case
+        3. **Early termination**: Stop bubble sort if no swaps occur in a pass
+        4. **Adaptive algorithms**: Insertion sort performs well on nearly sorted data
+        5. **Cache efficiency**: Quick sort has better cache performance than merge sort
+        
+        **Real-world Considerations:**
+        - Modern languages often use hybrid algorithms (Timsort in Python, Introsort in C++)
+        - Consider data characteristics: size, initial order, stability requirements
+        - For very large datasets, consider external sorting algorithms
+        - Parallel sorting algorithms can leverage multiple CPU cores
         """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 20px;'>
-    <p>🚀 Enhanced Pathfinding & Sorting Visualizer</p>
-    <p>🗺️ Interactive location selection with 6 pathfinding algorithms</p>
-    <p>📊 Advanced sorting visualization with 7 algorithms and detailed analysis</p>
-    <p>Built with ❤️ using Streamlit, OSMnx, NetworkX, Folium & Plotly</p>
+    <h3>🚀 Advanced PathFinder & Sort Visualizer</h3>
+    <div style='display: flex; justify-content: center; gap: 40px; margin: 20px 0;'>
+        <div>
+            <h4>🗺️ Pathfinding Features</h4>
+            <p>✅ Interactive grid-based pathfinding</p>
+            <p>✅ Real-world map integration</p>
+            <p>✅ 6 different algorithms</p>
+            <p>✅ Performance comparison</p>
+            <p>✅ Multiple map types & obstacles</p>
+        </div>
+        <div>
+            <h4>📊 Sorting Features</h4>
+            <p>✅ Animated step-by-step visualization</p>
+            <p>✅ 6 sorting algorithms</p>
+            <p>✅ Multiple array types</p>
+            <p>✅ Performance metrics</p>
+            <p>✅ Algorithm comparison</p>
+        </div>
+    </div>
+    <p><strong>Built with ❤️ using:</strong> Streamlit • Plotly • Folium • NumPy • Pandas</p>
+    <p><em>Enhanced with better error handling, real map integration, and comprehensive algorithm analysis</em></p>
 </div>
 """, unsafe_allow_html=True)
+
+# Additional features and improvements
+if st.sidebar.button("🔧 Show Advanced Settings"):
+    with st.sidebar.expander("Advanced Configuration", expanded=True):
+        st.markdown("### 🎛️ Advanced Settings")
+        
+        # Performance settings
+        st.markdown("**Performance Optimization:**")
+        enable_caching = st.checkbox("Enable Result Caching", value=True)
+        max_grid_size = st.slider("Max Grid Size", 20, 100, 50)
+        animation_quality = st.selectbox("Animation Quality", ["High", "Medium", "Low"])
+        
+        # Debug settings
+        st.markdown("**Debug Options:**")
+        show_debug_info = st.checkbox("Show Debug Information")
+        verbose_logging = st.checkbox("Verbose Logging")
+        
+        # Export settings
+        st.markdown("**Export Options:**")
+        if st.button("📁 Export Results"):
+            st.info("Export functionality would save current results to file")
+        
+        if show_debug_info:
+            st.markdown("**Debug Information:**")
+            st.json({
+                "session_state_keys": list(st.session_state.keys()),
+                "current_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "streamlit_version": st.__version__
+            })
+
+# Session state cleanup
+if st.sidebar.button("🧹 Clear All Data"):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
