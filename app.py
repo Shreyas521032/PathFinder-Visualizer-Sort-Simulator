@@ -841,9 +841,9 @@ with tab1:
         
         # Enable find path button if we have 2 points
         if len(st.session_state.selected_points) >= 2:
-            st.sidebar.button("🎯 Find Path", key="find_path_enabled", type="primary")
+            find_path_enabled = st.button("🎯 Find Path", key="find_path_enabled", type="primary")
             
-            if st.sidebar.button("🎯 Find Path", key="find_path_enabled") or find_path:
+            if find_path_enabled:
                 try:
                     with st.spinner("Finding optimal path..."):
                         G = st.session_state.graph
@@ -855,9 +855,6 @@ with tab1:
                         start_node = find_nearest_node(G, start_point['lat'], start_point['lng'])
                         end_node = find_nearest_node(G, end_point['lat'], end_point['lng'])
                         
-                        if start_node is None or end_node is None:
-                            st.error("❌ Could not find valid nodes near selected points")
-                        else:
                         if start_node is None or end_node is None:
                             st.error("❌ Could not find valid nodes near selected points")
                         else:
