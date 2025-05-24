@@ -606,7 +606,7 @@ with tab1:
             
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
-                if st.button("⏮️ Previous Step, key="prev_step_btn""):
+                if st.button("⏮️ Previous Step", key="prev_step_btn"):
                     if 'current_step_index' in st.session_state and st.session_state.current_step_index > 0:
                         st.session_state.current_step_index -= 1
             
