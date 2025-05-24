@@ -264,14 +264,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Developer credit in navigation
-with st.sidebar:
-    st.markdown("""
-    <div class="developer-sidebar">
-        <strong>✨ Developed with ❤️ by<br>Shreyas Kasture ✨</strong>
-    </div>
-    """, unsafe_allow_html=True)
-
 # Title with developer credit
 st.markdown('<h1 class="main-header">🗺️ Advanced PathFinder & Sort Visualizer</h1>', unsafe_allow_html=True)
 st.markdown('<div class="developer-credit">✨ Developed with ❤️ by Shreyas Kasture ✨</div>', unsafe_allow_html=True)
