@@ -611,7 +611,7 @@ with tab1:
                         st.session_state.current_step_index -= 1
             
             with col_btn2:
-                if st.button("⏭️ Next Step"):
+                if st.button("⏭️ Next Step", key="next_step_btn"):
                     if ('current_step_index' in st.session_state and 
                         'pathfinding_steps' in st.session_state and
                         st.session_state.current_step_index < len(st.session_state.pathfinding_steps) - 1):
