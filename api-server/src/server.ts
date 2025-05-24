@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -17,7 +17,7 @@ dotenv.config();
 // Validate environment variables
 validateEnvironment();
 
-const app = express();
+const app: Application = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
@@ -47,22 +47,23 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// CORS configuration
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? process.env.CORS_ORIGINS?.split(',') || [
+// CORS configuration - simplified to avoid type issues
+const corsOrigins: string[] = process.env.NODE_ENV === 'production' 
+  ? (process.env.CORS_ORIGINS?.split(',') || [
       'https://pathfinder-visualizer.vercel.app',
       'https://pathfinder-visualizer-git-main.vercel.app'
-    ]
+    ])
   : [
       'http://localhost:3000',
       'http://127.0.0.1:3000'
     ];
 
+// Use CORS with explicit typing
 app.use(cors({
-  origin: allowedOrigins,
+  origin: corsOrigins,
   credentials: true,
   optionsSuccessStatus: 200,
-}));
+} as cors.CorsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
