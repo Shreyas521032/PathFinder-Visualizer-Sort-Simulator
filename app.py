@@ -1961,51 +1961,6 @@ def generate_sorting_steps(arr, algorithm):
                 steps.append({
                     'array': arr.copy(),
                     'comparing': [j, j+1],
-                    'operation': f"Inserting: comparing positions {j} and {j+1}"
-                })
-                arr[j+1] = arr[j]
-                j -= 1
-            arr[j+1] = key
-            steps.append({
-                'array': arr.copy(),
-                'swapping': [j+1],
-                'operation': f"Inserted element at position {j+1}"
-            })
-    
-    # For other algorithms, we'll use simplified versions
-    else:
-        # Just show the final sorted array for now
-        arr.sort()
-        steps.append({
-            'array': arr.copy(),
-            'operation': f"{algorithm} - Completed"
-        })
-    
-    return steps
-
-# Footer with developer credits
-st.markdown("---")
-st.markdown("""
-<div class="footer-developer">
-    <h3>✨ Developed with ❤️ by Shreyas Kasture ✨</h3>
-    <p>Advanced PathFinder & Sort Visualizer - Bringing algorithms to life!</p>
-    <p style="font-size: 0.9em; opacity: 0.8;">
-        Made with Streamlit, Plotly, and Folium | Interactive Learning Experience
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
-# Helper function to generate sorting steps
-def generate_sorting_steps(arr, algorithm):
-    steps = []
-    n = len(arr)
-    
-    if algorithm == "Bubble Sort":
-        for i in range(n):
-            for j in range(0, n-i-1):
-                steps.append({
-                    'array': arr.copy(),
-                    'comparing': [j, j+1],
                     'operation': f"Comparing positions {j} and {j+1}"
                 })
                 if arr[j] > arr[j+1]:
