@@ -48,16 +48,26 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration - simplified to avoid type issues
-const corsOrigins: string[] = process.env.NODE_ENV === 'production' 
-  ? (process.env.CORS_ORIGINS?.split(',') || [
-      'https://pathfinder-visualizer.vercel.app',
-      'https://pathfinder-visualizer-git-main.vercel.app'
-    ])
-  : [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ];
-
+// Replace the CORS section with this simpler version:
+app.use((req: Request, res: Response, next: any) => {
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? ['https://pathfinder-visualizer.vercel.app']
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin as string)) {
+    res.setHeader('Access-Control-Allow-Origin', origin as string);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 // Use CORS with explicit typing
 app.use(cors({
   origin: corsOrigins,
