@@ -1,4 +1,3 @@
-// api-server/src/server.ts
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -49,21 +48,21 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.CORS_ORIGINS?.split(',') || [
-        'https://pathfinder-visualizer.vercel.app',
-        'https://pathfinder-visualizer-git-main.vercel.app'
-      ]
-    : [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000'
-      ],
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? process.env.CORS_ORIGINS?.split(',') || [
+      'https://pathfinder-visualizer.vercel.app',
+      'https://pathfinder-visualizer-git-main.vercel.app'
+    ]
+  : [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000'
+    ];
+
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
   optionsSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
