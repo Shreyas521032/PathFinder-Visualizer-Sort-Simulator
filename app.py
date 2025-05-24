@@ -2246,14 +2246,3 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
-# Add final developer credit at the bottom of sidebar
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                color: white; padding: 10px; border-radius: 10px; 
-                text-align: center; margin-top: 20px;'>
-        <strong>✨ Developed with ❤️ by<br>Shreyas Kasture ✨</strong>
-    </div>
-    """, unsafe_allow_html=True)
