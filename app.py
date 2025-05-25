@@ -1194,7 +1194,7 @@ with tab1:
             """)
     
     # Real Maps Tab (Enhanced)
-    with pathfind_tabs[1]:
+    with pathfind_tabs[2]:
         st.subheader("🌍 Real-World Map Pathfinding")
         
         col1, col2 = st.columns([3, 1])
