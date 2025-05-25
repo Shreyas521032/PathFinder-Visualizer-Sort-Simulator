@@ -84,6 +84,20 @@ st.markdown("""
         border-radius: 10px;
         border-left: 4px solid #667eea;
     }
+    .interactive-grid {
+        border: 2px solid #667eea;
+        border-radius: 10px;
+        padding: 10px;
+        background: white;
+    }
+    .real-world-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -597,6 +611,98 @@ class SortingAlgorithms:
         steps.append((arr.copy(), [], "completed"))
         return steps
 
+# Real-world sorting applications
+class RealWorldSortingApplications:
+    @staticmethod
+    def generate_student_data(n=50):
+        """Generate sample student data for educational sorting"""
+        names = ["Alex", "Bob", "Charlie", "Diana", "Eve", "Frank", "Grace", "Henry", "Ivy", "Jack"] * (n//10 + 1)
+        subjects = ["Math", "Science", "English", "History", "Art"]
+        
+        students = []
+        for i in range(n):
+            student = {
+                "name": f"{names[i % len(names)]}{i//10 + 1}",
+                "score": random.randint(60, 100),
+                "age": random.randint(18, 25),
+                "subject": random.choice(subjects),
+                "grade": ""
+            }
+            # Assign grades based on score
+            if student["score"] >= 90:
+                student["grade"] = "A"
+            elif student["score"] >= 80:
+                student["grade"] = "B"
+            elif student["score"] >= 70:
+                student["grade"] = "C"
+            else:
+                student["grade"] = "D"
+            
+            students.append(student)
+        
+        return students
+    
+    @staticmethod
+    def generate_employee_data(n=30):
+        """Generate sample employee data for HR sorting"""
+        departments = ["Engineering", "Marketing", "Sales", "HR", "Finance"]
+        positions = ["Junior", "Senior", "Lead", "Manager", "Director"]
+        
+        employees = []
+        for i in range(n):
+            employee = {
+                "id": f"EMP{1000 + i}",
+                "name": f"Employee {i+1}",
+                "salary": random.randint(40000, 150000),
+                "department": random.choice(departments),
+                "position": random.choice(positions),
+                "experience": random.randint(1, 20),
+                "performance": random.randint(1, 10)
+            }
+            employees.append(employee)
+        
+        return employees
+    
+    @staticmethod
+    def generate_ecommerce_data(n=40):
+        """Generate sample e-commerce data for business sorting"""
+        categories = ["Electronics", "Clothing", "Books", "Home", "Sports"]
+        
+        products = []
+        for i in range(n):
+            product = {
+                "id": f"PROD{2000 + i}",
+                "name": f"Product {i+1}",
+                "price": round(random.uniform(10, 500), 2),
+                "rating": round(random.uniform(1, 5), 1),
+                "sales": random.randint(10, 1000),
+                "category": random.choice(categories),
+                "stock": random.randint(0, 100)
+            }
+            products.append(product)
+        
+        return products
+    
+    @staticmethod
+    def generate_financial_data(n=25):
+        """Generate sample financial data for analysis sorting"""
+        companies = ["TechCorp", "RetailGiant", "FinanceInc", "HealthcarePlus", "EnergyPower"] * (n//5 + 1)
+        
+        stocks = []
+        for i in range(n):
+            stock = {
+                "symbol": f"{companies[i % len(companies)][:3].upper()}{i//5 + 1}",
+                "company": companies[i % len(companies)],
+                "price": round(random.uniform(20, 300), 2),
+                "volume": random.randint(1000, 100000),
+                "market_cap": random.randint(1000000, 10000000000),
+                "pe_ratio": round(random.uniform(5, 50), 2),
+                "dividend": round(random.uniform(0, 8), 2)
+            }
+            stocks.append(stock)
+        
+        return stocks
+
 # Algorithm information data
 PATHFINDING_INFO = {
     "A* (A-Star)": {
@@ -765,6 +871,68 @@ def create_grid_visualization(grid: GridPathfinder, path: List[Tuple[int, int]] 
     
     return fig
 
+def create_interactive_grid_visualization(grid: GridPathfinder, path: List[Tuple[int, int]] = None, 
+                                        visited: List[Tuple[int, int]] = None, start: Tuple[int, int] = None,
+                                        goal: Tuple[int, int] = None) -> go.Figure:
+    """Create an interactive plotly visualization where users can click to set points"""
+    
+    # Create visualization grid
+    vis_grid = np.zeros((grid.height, grid.width))
+    hover_text = []
+    
+    for y in range(grid.height):
+        hover_row = []
+        for x in range(grid.width):
+            if (x, y) in grid.obstacles:
+                vis_grid[y][x] = -1
+                hover_row.append(f"Obstacle at ({x},{y})")
+            elif start and (x, y) == start:
+                vis_grid[y][x] = 1.0
+                hover_row.append(f"Start at ({x},{y})")
+            elif goal and (x, y) == goal:
+                vis_grid[y][x] = 0.9
+                hover_row.append(f"Goal at ({x},{y})")
+            elif path and (x, y) in path:
+                vis_grid[y][x] = 0.8
+                hover_row.append(f"Path at ({x},{y})")
+            elif visited and (x, y) in visited:
+                vis_grid[y][x] = 0.3
+                hover_row.append(f"Visited ({x},{y})")
+            else:
+                vis_grid[y][x] = 0
+                hover_row.append(f"Empty ({x},{y}) - Click to interact")
+        hover_text.append(hover_row)
+    
+    # Create custom colorscale
+    colorscale = [
+        [0.0, 'black'],      # Obstacles
+        [0.2, 'white'],      # Empty
+        [0.4, 'lightblue'],  # Visited
+        [0.6, 'yellow'],     # Path
+        [0.8, 'orange'],     # Goal
+        [1.0, 'green']       # Start
+    ]
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=vis_grid,
+        colorscale=colorscale,
+        showscale=False,
+        text=hover_text,
+        hovertemplate='%{text}<extra></extra>',
+        name=""
+    ))
+    
+    fig.update_layout(
+        title="Interactive Grid - Click to Set Points",
+        xaxis_title="X Coordinate",
+        yaxis_title="Y Coordinate",
+        width=600,
+        height=500,
+        yaxis={'autorange': 'reversed'}  # Flip Y axis to match typical grid representation
+    )
+    
+    return fig
+
 def create_sample_maps():
     """Create predefined sample maps with obstacles"""
     maps = {
@@ -844,9 +1012,9 @@ with tab1:
     st.header("🗺️ Advanced Pathfinding Visualization")
     
     # Create sub-tabs for different pathfinding modes
-    pathfind_tabs = st.tabs(["🟩 Grid-Based", "🌍 Real Maps", "🆚 Algorithm Comparison"])
+    pathfind_tabs = st.tabs(["🟩 Interactive Grid", "🌍 Real Maps", "🆚 Algorithm Comparison"])
     
-    # Grid-Based Pathfinding Tab
+    # Interactive Grid-Based Pathfinding Tab (Enhanced)
     with pathfind_tabs[0]:
         st.subheader("Interactive Grid Pathfinding")
         
@@ -866,6 +1034,12 @@ with tab1:
                  "DFS (Depth-First Search)", "Greedy Best-First", "Bidirectional Search"]
             )
             
+            # Interactive mode selection
+            interaction_mode = st.radio(
+                "🖱️ Interaction Mode",
+                ["Set Start Point", "Set Goal Point", "Add Obstacles", "Remove Obstacles"]
+            )
+            
             # Sample maps
             sample_maps = create_sample_maps()
             selected_map = st.selectbox("🗺️ Sample Maps", list(sample_maps.keys()))
@@ -879,7 +1053,7 @@ with tab1:
                 st.session_state.grid_updated = True
             
             # Manual point setting
-            st.markdown("### 📍 Set Points")
+            st.markdown("### 📍 Manual Point Setting")
             
             col_start, col_goal = st.columns(2)
             with col_start:
@@ -964,25 +1138,51 @@ with tab1:
                 st.session_state.grid.height != grid_height):
                 st.session_state.grid = GridPathfinder(grid_width, grid_height)
             
-            # Create visualization
+            # Create interactive visualization
             path = st.session_state.get('grid_path', [])
             visited = st.session_state.get('grid_visited', [])
             start = st.session_state.get('start_point', None)
             goal = st.session_state.get('goal_point', None)
             
-            fig = create_grid_visualization(
+            fig = create_interactive_grid_visualization(
                 st.session_state.grid, path, visited, start, goal
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # Display the interactive chart and capture click events
+            clicked_data = st.plotly_chart(fig, use_container_width=True, on_select="rerun")
+            
+            # Handle click events for interactive point placement
+            if clicked_data and clicked_data.get('selection') and clicked_data['selection'].get('points'):
+                for point in clicked_data['selection']['points']:
+                    if 'x' in point and 'y' in point:
+                        clicked_x = int(point['x'])
+                        clicked_y = int(point['y'])
+                        
+                        if interaction_mode == "Set Start Point":
+                            st.session_state.start_point = (clicked_x, clicked_y)
+                            st.success(f"Start point set to ({clicked_x}, {clicked_y})")
+                            
+                        elif interaction_mode == "Set Goal Point":
+                            st.session_state.goal_point = (clicked_x, clicked_y)
+                            st.success(f"Goal point set to ({clicked_x}, {clicked_y})")
+                            
+                        elif interaction_mode == "Add Obstacles":
+                            st.session_state.grid.set_obstacle(clicked_x, clicked_y)
+                            st.success(f"Obstacle added at ({clicked_x}, {clicked_y})")
+                            
+                        elif interaction_mode == "Remove Obstacles":
+                            st.session_state.grid.remove_obstacle(clicked_x, clicked_y)
+                            st.success(f"Obstacle removed from ({clicked_x}, {clicked_y})")
+                        
+                        st.rerun()
             
             # Instructions
-            st.info("""
-            🖱️ **Instructions:**
-            1. Set grid size and select algorithm
-            2. Choose a sample map or manually set start/goal points
-            3. Click 'Find Path' to run the pathfinding algorithm
-            4. View the results and try different algorithms!
+            st.info(f"""
+            🖱️ **Interactive Instructions:**
+            1. **Current Mode:** {interaction_mode}
+            2. **Click on the grid** to {interaction_mode.lower()}
+            3. Set start and goal points, then click 'Find Path'
+            4. Switch interaction modes to add/remove obstacles
             
             **Legend:**
             - 🟩 Green: Start point
@@ -990,9 +1190,10 @@ with tab1:
             - 🟨 Yellow: Optimal path
             - 🔵 Light Blue: Visited nodes
             - ⬛ Black: Obstacles
+            - ⬜ White: Empty cells
             """)
     
-    # Real Maps Tab
+    # Real Maps Tab (Enhanced)
     with pathfind_tabs[1]:
         st.subheader("🌍 Real-World Map Pathfinding")
         
@@ -1016,6 +1217,9 @@ with tab1:
                 "🗺️ Map Style",
                 ["OpenStreetMap", "Stamen Terrain", "Stamen Toner", "CartoDB positron"]
             )
+            
+            # Interactive point placement toggle
+            use_click_placement = st.checkbox("🖱️ Click to Set Points on Map", value=False)
             
             if st.button("🗺️ Create Route", type="primary"):
                 real_map_finder = RealMapPathfinder()
@@ -1071,8 +1275,14 @@ with tab1:
                             popup=f"Route: {route_data['distance']:.1f} km"
                         ).add_to(m)
                         
+                        # Add click functionality if enabled
+                        if use_click_placement:
+                            m.add_child(folium.LatLngPopup())
+                        
                         st.session_state.real_map = m
                         st.session_state.route_data = route_data
+                        st.session_state.start_coords = start_coords
+                        st.session_state.end_coords = end_coords
                         
                         # Display metrics
                         st.metric("Distance", f"{route_data['distance']:.1f} km")
@@ -1088,7 +1298,9 @@ with tab1:
                 "NYC to Boston": ("New York, NY", "Boston, MA"),
                 "LA to San Francisco": ("Los Angeles, CA", "San Francisco, CA"),
                 "London to Paris": ("London, UK", "Paris, France"),
-                "Tokyo to Osaka": ("Tokyo, Japan", "Osaka, Japan")
+                "Tokyo to Osaka": ("Tokyo, Japan", "Osaka, Japan"),
+                "Mumbai to Delhi": ("Mumbai, India", "Delhi, India"),
+                "Sydney to Melbourne": ("Sydney, Australia", "Melbourne, Australia")
             }
             
             selected_route = st.selectbox("Quick Routes", list(sample_routes.keys()))
@@ -1097,25 +1309,60 @@ with tab1:
                 st.session_state.temp_start = start_loc
                 st.session_state.temp_end = end_loc
                 st.rerun()
+            
+            # Map interaction help
+            if use_click_placement:
+                st.info("""
+                🖱️ **Map Interaction:**
+                - Click on the map to see coordinates
+                - Copy coordinates to set custom points
+                - Use for precise location selection
+                """)
         
         with col1:
             if 'real_map' in st.session_state:
-                st_folium(st.session_state.real_map, width=700, height=500)
+                map_data = st_folium(st.session_state.real_map, width=700, height=500, returned_objects=["last_object_clicked"])
+                
+                # Handle map clicks for interactive point placement
+                if use_click_placement and map_data['last_object_clicked']:
+                    clicked_lat = map_data['last_object_clicked']['lat']
+                    clicked_lng = map_data['last_object_clicked']['lng']
+                    st.write(f"📍 Clicked coordinates: {clicked_lat:.4f}, {clicked_lng:.4f}")
+                    
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        if st.button("Set as Start Point"):
+                            st.session_state.clicked_start = (clicked_lat, clicked_lng)
+                            st.success("Start point updated!")
+                    with col_b:
+                        if st.button("Set as End Point"):
+                            st.session_state.clicked_end = (clicked_lat, clicked_lng)
+                            st.success("End point updated!")
                 
                 if 'route_data' in st.session_state:
                     route = st.session_state.route_data
                     st.success(f"✅ Route calculated: {route['distance']:.1f} km, ~{route['duration']/3600:.1f} hours")
             else:
-                # Default map
+                # Default map with pointer capabilities
                 default_map = folium.Map(location=[40.7128, -74.0060], zoom_start=5)
-                st_folium(default_map, width=700, height=500)
+                if use_click_placement:
+                    default_map.add_child(folium.LatLngPopup())
+                
+                map_data = st_folium(default_map, width=700, height=500, returned_objects=["last_object_clicked"])
+                
+                # Handle clicks on default map
+                if use_click_placement and map_data['last_object_clicked']:
+                    clicked_lat = map_data['last_object_clicked']['lat']
+                    clicked_lng = map_data['last_object_clicked']['lng']
+                    st.write(f"📍 Clicked coordinates: {clicked_lat:.4f}, {clicked_lng:.4f}")
                 
                 st.info("""
                 🗺️ **Real Map Features:**
-                - Enter start and end locations
+                - Enter start and end locations or click on map
                 - Choose transport mode (driving, walking, cycling)  
                 - Select map style
                 - View calculated routes with distance and time
+                - Interactive point placement with map clicks
                 
                 **Note:** This demo uses simplified routing. For production use, integrate with services like:
                 - OpenRouteService
@@ -1123,7 +1370,7 @@ with tab1:
                 - Mapbox API
                 """)
     
-    # Algorithm Comparison Tab
+    # Algorithm Comparison Tab (unchanged but keeping for completeness)
     with pathfind_tabs[2]:
         st.subheader("🆚 Algorithm Performance Comparison")
         
@@ -1296,313 +1543,778 @@ with tab1:
                 for con in info['cons']:
                     st.markdown(f"❌ {con}")
 
-# Tab 2: Sorting Visualizer (keeping the excellent implementation)
+# Tab 2: Enhanced Sorting Visualizer with Real-World Applications
 with tab2:
     st.header("📊 Advanced Sorting Algorithm Visualizer")
     
-    # Sidebar for sorting
-    with st.sidebar:
-        st.subheader("🎛️ Sorting Controls")
-        
-        # Array configuration
-        array_size = st.slider("📏 Array Size", 10, 100, 30)
-        array_type = st.selectbox(
-            "📊 Array Type",
-            ["Random", "Nearly Sorted", "Reverse Sorted", "Few Unique", "Mostly Sorted"]
-        )
-        
-        # Algorithm selection
-        sort_algorithm = st.selectbox(
-            "🔄 Sorting Algorithm",
-            ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", 
-             "Merge Sort", "Heap Sort"]
-        )
-        
-        # Animation speed
-        animation_speed = st.slider("⚡ Animation Speed", 0.01, 1.0, 0.1, 0.01)
-        
-        # Visualization options
-        show_comparisons = st.checkbox("👀 Show Comparisons", value=True)
-        show_array_access = st.checkbox("📊 Count Array Accesses", value=True)
-        
-        # Generate array button
-        generate_array = st.button("🎲 Generate New Array", type="primary")
-        
-        # Start sorting button
-        start_sorting = st.button("▶️ Start Sorting")
-        
-        # Compare algorithms
-        compare_algos = st.button("⚔️ Compare All Algorithms")
+    # Create sub-tabs for sorting
+    sort_tabs = st.tabs(["🎬 Algorithm Animation", "🌍 Real-World Applications", "🆚 Performance Analysis"])
     
-    # Generate array based on type
-    if generate_array or 'sorting_array' not in st.session_state:
-        if array_type == "Random":
-            arr = [random.randint(1, 100) for _ in range(array_size)]
-        elif array_type == "Nearly Sorted":
-            arr = list(range(1, array_size + 1))
-            # Shuffle a few elements
-            for _ in range(array_size // 10):
-                i, j = random.randint(0, array_size - 1), random.randint(0, array_size - 1)
-                arr[i], arr[j] = arr[j], arr[i]
-        elif array_type == "Reverse Sorted":
-            arr = list(range(array_size, 0, -1))
-        elif array_type == "Few Unique":
-            unique_values = [random.randint(1, 20) for _ in range(5)]
-            arr = [random.choice(unique_values) for _ in range(array_size)]
-        else:  # Mostly Sorted
-            arr = list(range(1, array_size + 1))
-            # Shuffle only a few elements
-            for _ in range(max(1, array_size // 20)):
-                i, j = random.randint(0, array_size - 1), random.randint(0, array_size - 1)
-                arr[i], arr[j] = arr[j], arr[i]
+    # Algorithm Animation Tab (Enhanced from original)
+    with sort_tabs[0]:
+        st.subheader("🎬 Interactive Sorting Animation")
         
-        st.session_state.sorting_array = arr
-        st.session_state.original_array = arr.copy()
-    
-    # Display current array
-    if 'sorting_array' in st.session_state:
-        st.subheader(f"Current Array ({array_type})")
-        
-        # Create bar chart
-        fig = go.Figure(data=[
-            go.Bar(
-                x=list(range(len(st.session_state.sorting_array))),
-                y=st.session_state.sorting_array,
-                marker_color='lightblue',
-                text=st.session_state.sorting_array,
-                textposition='outside' if len(st.session_state.sorting_array) <= 20 else 'none'
-            )
-        ])
-        
-        fig.update_layout(
-            title=f"Array of size {len(st.session_state.sorting_array)}",
-            xaxis_title="Index",
-            yaxis_title="Value",
-            showlegend=False,
-            height=400
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Compare all algorithms
-    if compare_algos and 'sorting_array' in st.session_state:
-        st.subheader("🏆 Algorithm Comparison")
-        
-        algorithms = ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", "Merge Sort", "Heap Sort"]
-        comparison_results = []
-        
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        arr = st.session_state.original_array.copy()
-        
-        for i, algo in enumerate(algorithms):
-            status_text.text(f"Testing {algo}...")
-            progress_bar.progress((i + 1) / len(algorithms))
+        # Sidebar for sorting
+        with st.sidebar:
+            st.subheader("🎛️ Sorting Controls")
             
-            start_time = time.time()
-            
-            try:
-                if algo == "Bubble Sort":
-                    steps = SortingAlgorithms.bubble_sort(arr)
-                elif algo == "Selection Sort":
-                    steps = SortingAlgorithms.selection_sort(arr)
-                elif algo == "Insertion Sort":
-                    steps = SortingAlgorithms.insertion_sort(arr)
-                elif algo == "Quick Sort":
-                    steps = SortingAlgorithms.quick_sort(arr)
-                elif algo == "Merge Sort":
-                    steps = SortingAlgorithms.merge_sort(arr)
-                else:  # Heap Sort
-                    steps = SortingAlgorithms.heap_sort(arr)
-                
-                end_time = time.time()
-                execution_time = (end_time - start_time) * 1000
-                
-                comparison_results.append({
-                    "Algorithm": algo,
-                    "Steps": len(steps),
-                    "Time (ms)": f"{execution_time:.2f}",
-                    "Time_numeric": execution_time
-                })
-            except Exception as e:
-                comparison_results.append({
-                    "Algorithm": algo,
-                    "Steps": "Error",
-                    "Time (ms)": "Error",
-                    "Time_numeric": float('inf')
-                })
-        
-        # Display results
-        df = pd.DataFrame(comparison_results)
-        df_display = df.drop('Time_numeric', axis=1)
-        st.dataframe(df_display, use_container_width=True)
-        
-        # Create performance chart
-        valid_results = [r for r in comparison_results if r["Time_numeric"] != float('inf')]
-        if valid_results:
-            fig = go.Figure()
-            
-            algorithms_list = [r["Algorithm"] for r in valid_results]
-            times_list = [r["Time_numeric"] for r in valid_results]
-            steps_list = [r["Steps"] for r in valid_results if isinstance(r["Steps"], int)]
-            
-            fig.add_trace(go.Bar(
-                name='Execution Time (ms)',
-                x=algorithms_list,
-                y=times_list,
-                yaxis='y',
-                offsetgroup=1,
-                marker_color='lightblue'
-            ))
-            
-            if len(steps_list) == len(algorithms_list):
-                fig.add_trace(go.Bar(
-                    name='Steps',
-                    x=algorithms_list,
-                    y=steps_list,
-                    yaxis='y2',
-                    offsetgroup=2,
-                    marker_color='lightcoral'
-                ))
-            
-            fig.update_layout(
-                title='Algorithm Performance Comparison',
-                xaxis_title='Algorithm',
-                yaxis=dict(title='Execution Time (ms)', side='left'),
-                yaxis2=dict(title='Steps', side='right', overlaying='y'),
-                barmode='group',
-                height=500
+            # Array configuration
+            array_size = st.slider("📏 Array Size", 10, 100, 30)
+            array_type = st.selectbox(
+                "📊 Array Type",
+                ["Random", "Nearly Sorted", "Reverse Sorted", "Few Unique", "Mostly Sorted"]
             )
             
-            st.plotly_chart(fig, use_container_width=True)
-        
-        status_text.empty()
-        progress_bar.empty()
-    
-    # Start sorting animation
-    if start_sorting and 'sorting_array' in st.session_state:
-        arr = st.session_state.original_array.copy()
-        
-        # Get sorting steps
-        with st.spinner(f"Running {sort_algorithm}..."):
-            start_time = time.time()
+            # Algorithm selection
+            sort_algorithm = st.selectbox(
+                "🔄 Sorting Algorithm",
+                ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", 
+                 "Merge Sort", "Heap Sort"]
+            )
             
-            if sort_algorithm == "Bubble Sort":
-                steps = SortingAlgorithms.bubble_sort(arr)
-            elif sort_algorithm == "Selection Sort":
-                steps = SortingAlgorithms.selection_sort(arr)
-            elif sort_algorithm == "Insertion Sort":
-                steps = SortingAlgorithms.insertion_sort(arr)
-            elif sort_algorithm == "Quick Sort":
-                steps = SortingAlgorithms.quick_sort(arr)
-            elif sort_algorithm == "Merge Sort":
-                steps = SortingAlgorithms.merge_sort(arr)
-            else:  # Heap Sort
-                steps = SortingAlgorithms.heap_sort(arr)
+            # Animation speed
+            animation_speed = st.slider("⚡ Animation Speed", 0.01, 1.0, 0.1, 0.01)
             
-            end_time = time.time()
-            total_time = (end_time - start_time) * 1000
+            # Visualization options
+            show_comparisons = st.checkbox("👀 Show Comparisons", value=True)
+            show_array_access = st.checkbox("📊 Count Array Accesses", value=True)
+            
+            # Generate array button
+            generate_array = st.button("🎲 Generate New Array", type="primary")
+            
+            # Start sorting button
+            start_sorting = st.button("▶️ Start Sorting")
+            
+            # Compare algorithms
+            compare_algos = st.button("⚔️ Compare All Algorithms")
         
-        # Create placeholders for animation
-        progress_bar = st.progress(0)
-        chart_placeholder = st.empty()
-        status_placeholder = st.empty()
-        metrics_placeholder = st.empty()
+        # Generate array based on type
+        if generate_array or 'sorting_array' not in st.session_state:
+            if array_type == "Random":
+                arr = [random.randint(1, 100) for _ in range(array_size)]
+            elif array_type == "Nearly Sorted":
+                arr = list(range(1, array_size + 1))
+                # Shuffle a few elements
+                for _ in range(array_size // 10):
+                    i, j = random.randint(0, array_size - 1), random.randint(0, array_size - 1)
+                    arr[i], arr[j] = arr[j], arr[i]
+            elif array_type == "Reverse Sorted":
+                arr = list(range(array_size, 0, -1))
+            elif array_type == "Few Unique":
+                unique_values = [random.randint(1, 20) for _ in range(5)]
+                arr = [random.choice(unique_values) for _ in range(array_size)]
+            else:  # Mostly Sorted
+                arr = list(range(1, array_size + 1))
+                # Shuffle only a few elements
+                for _ in range(max(1, array_size // 20)):
+                    i, j = random.randint(0, array_size - 1), random.randint(0, array_size - 1)
+                    arr[i], arr[j] = arr[j], arr[i]
+            
+            st.session_state.sorting_array = arr
+            st.session_state.original_array = arr.copy()
         
-        # Animation counters
-        comparisons = 0
-        swaps = 0
-        array_accesses = 0
-        
-        # Animate sorting
-        for i, (current_array, highlighted, action) in enumerate(steps):
-            # Update counters
-            if "comparing" in action:
-                comparisons += 1
-                array_accesses += 2
-            elif "swap" in action:
-                swaps += 1
-                array_accesses += 2
-            elif action in ["shifted", "inserted", "merged"]:
-                array_accesses += 1
+        # Display current array
+        if 'sorting_array' in st.session_state:
+            st.subheader(f"Current Array ({array_type})")
             
-            # Update progress
-            progress = (i + 1) / len(steps)
-            progress_bar.progress(progress)
-            
-            # Create colors for bars
-            colors = ['lightblue'] * len(current_array)
-            for idx in highlighted:
-                if idx < len(colors):
-                    if "comparing" in action:
-                        colors[idx] = 'yellow'
-                    elif "swap" in action:
-                        colors[idx] = 'red'
-                    elif "pivot" in action:
-                        colors[idx] = 'purple'
-                    elif action in ["merged", "inserted"]:
-                        colors[idx] = 'green'
-                    elif "current" in action or "min" in action:
-                        colors[idx] = 'orange'
-                    elif "gap" in action:
-                        colors[idx] = 'cyan'
-            
-            # Create animated bar chart
+            # Create bar chart
             fig = go.Figure(data=[
                 go.Bar(
-                    x=list(range(len(current_array))),
-                    y=current_array,
-                    marker_color=colors,
-                    text=current_array if len(current_array) <= 30 else None,
-                    textposition='outside' if len(current_array) <= 30 else 'none'
+                    x=list(range(len(st.session_state.sorting_array))),
+                    y=st.session_state.sorting_array,
+                    marker_color='lightblue',
+                    text=st.session_state.sorting_array,
+                    textposition='outside' if len(st.session_state.sorting_array) <= 20 else 'none'
                 )
             ])
             
             fig.update_layout(
-                title=f"{sort_algorithm} - Step {i + 1}/{len(steps)}",
+                title=f"Array of size {len(st.session_state.sorting_array)}",
                 xaxis_title="Index",
                 yaxis_title="Value",
                 showlegend=False,
                 height=400
             )
             
-            chart_placeholder.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Compare all algorithms
+        if compare_algos and 'sorting_array' in st.session_state:
+            st.subheader("🏆 Algorithm Comparison")
             
-            # Update status and metrics
-            if action == "completed":
-                status_placeholder.success("✅ Sorting completed!")
+            algorithms = ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", "Merge Sort", "Heap Sort"]
+            comparison_results = []
+            
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            arr = st.session_state.original_array.copy()
+            
+            for i, algo in enumerate(algorithms):
+                status_text.text(f"Testing {algo}...")
+                progress_bar.progress((i + 1) / len(algorithms))
+                
+                start_time = time.time()
+                
+                try:
+                    if algo == "Bubble Sort":
+                        steps = SortingAlgorithms.bubble_sort(arr)
+                    elif algo == "Selection Sort":
+                        steps = SortingAlgorithms.selection_sort(arr)
+                    elif algo == "Insertion Sort":
+                        steps = SortingAlgorithms.insertion_sort(arr)
+                    elif algo == "Quick Sort":
+                        steps = SortingAlgorithms.quick_sort(arr)
+                    elif algo == "Merge Sort":
+                        steps = SortingAlgorithms.merge_sort(arr)
+                    else:  # Heap Sort
+                        steps = SortingAlgorithms.heap_sort(arr)
+                    
+                    end_time = time.time()
+                    execution_time = (end_time - start_time) * 1000
+                    
+                    comparison_results.append({
+                        "Algorithm": algo,
+                        "Steps": len(steps),
+                        "Time (ms)": f"{execution_time:.2f}",
+                        "Time_numeric": execution_time
+                    })
+                except Exception as e:
+                    comparison_results.append({
+                        "Algorithm": algo,
+                        "Steps": "Error",
+                        "Time (ms)": "Error",
+                        "Time_numeric": float('inf')
+                    })
+            
+            # Display results
+            df = pd.DataFrame(comparison_results)
+            df_display = df.drop('Time_numeric', axis=1)
+            st.dataframe(df_display, use_container_width=True)
+            
+            # Create performance chart
+            valid_results = [r for r in comparison_results if r["Time_numeric"] != float('inf')]
+            if valid_results:
+                fig = go.Figure()
+                
+                algorithms_list = [r["Algorithm"] for r in valid_results]
+                times_list = [r["Time_numeric"] for r in valid_results]
+                steps_list = [r["Steps"] for r in valid_results if isinstance(r["Steps"], int)]
+                
+                fig.add_trace(go.Bar(
+                    name='Execution Time (ms)',
+                    x=algorithms_list,
+                    y=times_list,
+                    yaxis='y',
+                    offsetgroup=1,
+                    marker_color='lightblue'
+                ))
+                
+                if len(steps_list) == len(algorithms_list):
+                    fig.add_trace(go.Bar(
+                        name='Steps',
+                        x=algorithms_list,
+                        y=steps_list,
+                        yaxis='y2',
+                        offsetgroup=2,
+                        marker_color='lightcoral'
+                    ))
+                
+                fig.update_layout(
+                    title='Algorithm Performance Comparison',
+                    xaxis_title='Algorithm',
+                    yaxis=dict(title='Execution Time (ms)', side='left'),
+                    yaxis2=dict(title='Steps', side='right', overlaying='y'),
+                    barmode='group',
+                    height=500
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            
+            status_text.empty()
+            progress_bar.empty()
+        
+        # Start sorting animation
+        if start_sorting and 'sorting_array' in st.session_state:
+            arr = st.session_state.original_array.copy()
+            
+            # Get sorting steps
+            with st.spinner(f"Running {sort_algorithm}..."):
+                start_time = time.time()
+                
+                if sort_algorithm == "Bubble Sort":
+                    steps = SortingAlgorithms.bubble_sort(arr)
+                elif sort_algorithm == "Selection Sort":
+                    steps = SortingAlgorithms.selection_sort(arr)
+                elif sort_algorithm == "Insertion Sort":
+                    steps = SortingAlgorithms.insertion_sort(arr)
+                elif sort_algorithm == "Quick Sort":
+                    steps = SortingAlgorithms.quick_sort(arr)
+                elif sort_algorithm == "Merge Sort":
+                    steps = SortingAlgorithms.merge_sort(arr)
+                else:  # Heap Sort
+                    steps = SortingAlgorithms.heap_sort(arr)
+                
+                end_time = time.time()
+                total_time = (end_time - start_time) * 1000
+            
+            # Create placeholders for animation
+            progress_bar = st.progress(0)
+            chart_placeholder = st.empty()
+            status_placeholder = st.empty()
+            metrics_placeholder = st.empty()
+            
+            # Animation counters
+            comparisons = 0
+            swaps = 0
+            array_accesses = 0
+            
+            # Animate sorting
+            for i, (current_array, highlighted, action) in enumerate(steps):
+                # Update counters
+                if "comparing" in action:
+                    comparisons += 1
+                    array_accesses += 2
+                elif "swap" in action:
+                    swaps += 1
+                    array_accesses += 2
+                elif action in ["shifted", "inserted", "merged"]:
+                    array_accesses += 1
+                
+                # Update progress
+                progress = (i + 1) / len(steps)
+                progress_bar.progress(progress)
+                
+                # Create colors for bars
+                colors = ['lightblue'] * len(current_array)
+                for idx in highlighted:
+                    if idx < len(colors):
+                        if "comparing" in action:
+                            colors[idx] = 'yellow'
+                        elif "swap" in action:
+                            colors[idx] = 'red'
+                        elif "pivot" in action:
+                            colors[idx] = 'purple'
+                        elif action in ["merged", "inserted"]:
+                            colors[idx] = 'green'
+                        elif "current" in action or "min" in action:
+                            colors[idx] = 'orange'
+                        elif "gap" in action:
+                            colors[idx] = 'cyan'
+                
+                # Create animated bar chart
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=list(range(len(current_array))),
+                        y=current_array,
+                        marker_color=colors,
+                        text=current_array if len(current_array) <= 30 else None,
+                        textposition='outside' if len(current_array) <= 30 else 'none'
+                    )
+                ])
+                
+                fig.update_layout(
+                    title=f"{sort_algorithm} - Step {i + 1}/{len(steps)}",
+                    xaxis_title="Index",
+                    yaxis_title="Value",
+                    showlegend=False,
+                    height=400
+                )
+                
+                chart_placeholder.plotly_chart(fig, use_container_width=True)
+                
+                # Update status and metrics
+                if action == "completed":
+                    status_placeholder.success("✅ Sorting completed!")
+                else:
+                    status_placeholder.info(f"Status: {action.replace('_', ' ').title()}")
+                
+                # Show metrics if enabled
+                if show_array_access or show_comparisons:
+                    col1, col2, col3, col4 = metrics_placeholder.columns(4)
+                    if show_comparisons:
+                        col1.metric("Comparisons", comparisons)
+                        col2.metric("Swaps", swaps)
+                    if show_array_access:
+                        col3.metric("Array Accesses", array_accesses)
+                    col4.metric("Progress", f"{progress*100:.1f}%")
+                
+                # Animation delay
+                time.sleep(animation_speed)
+            
+            # Final success message with statistics
+            st.balloons()
+            
+            # Final metrics
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total Steps", len(steps))
+            col2.metric("Execution Time", f"{total_time:.2f} ms")
+            col3.metric("Total Comparisons", comparisons)
+            col4.metric("Total Swaps", swaps)
+            
+            st.success(f"🎉 {sort_algorithm} completed!")
+            
+            # Clear placeholders
+            progress_bar.empty()
+            status_placeholder.empty()
+    
+    # Real-World Applications Tab (NEW)
+    with sort_tabs[1]:
+        st.subheader("🌍 Real-World Sorting Applications")
+        
+        # Application selector
+        application_type = st.selectbox(
+            "🎯 Choose Application Domain",
+            ["🎓 Student Grade Management", "👥 Employee HR System", "🛒 E-commerce Product Sorting", "📈 Financial Stock Analysis"]
+        )
+        
+        if application_type == "🎓 Student Grade Management":
+            st.markdown('<div class="real-world-card"><h3>🎓 Student Grade Management System</h3><p>Sort students by various criteria for academic analysis and reporting</p></div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col2:
+                st.markdown("### 🎛️ Controls")
+                num_students = st.slider("Number of Students", 10, 100, 50)
+                sort_by = st.selectbox("Sort By", ["Score", "Age", "Name", "Grade"])
+                sort_order = st.radio("Order", ["Ascending", "Descending"])
+                
+                if st.button("Generate Student Data", type="primary"):
+                    students = RealWorldSortingApplications.generate_student_data(num_students)
+                    st.session_state.students_data = students
+                
+                if st.button("Apply Sorting") and 'students_data' in st.session_state:
+                    data = st.session_state.students_data.copy()
+                    reverse = sort_order == "Descending"
+                    
+                    if sort_by == "Score":
+                        data.sort(key=lambda x: x['score'], reverse=reverse)
+                    elif sort_by == "Age":
+                        data.sort(key=lambda x: x['age'], reverse=reverse)
+                    elif sort_by == "Name":
+                        data.sort(key=lambda x: x['name'], reverse=reverse)
+                    else:  # Grade
+                        grade_order = {'A': 4, 'B': 3, 'C': 2, 'D': 1}
+                        data.sort(key=lambda x: grade_order.get(x['grade'], 0), reverse=reverse)
+                    
+                    st.session_state.sorted_students = data
+            
+            with col1:
+                if 'students_data' in st.session_state:
+                    # Display original data
+                    st.markdown("#### Original Data")
+                    df_original = pd.DataFrame(st.session_state.students_data)
+                    st.dataframe(df_original.head(10), use_container_width=True)
+                    
+                    # Display sorted data if available
+                    if 'sorted_students' in st.session_state:
+                        st.markdown("#### Sorted Data")
+                        df_sorted = pd.DataFrame(st.session_state.sorted_students)
+                        st.dataframe(df_sorted.head(10), use_container_width=True)
+                        
+                        # Create visualization
+                        fig = px.scatter(df_sorted, x='age', y='score', color='grade', 
+                                       title=f"Students Sorted by {sort_by} ({sort_order})",
+                                       hover_data=['name', 'subject'])
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Performance metrics
+                        top_performers = [s for s in st.session_state.sorted_students if s['score'] >= 90]
+                        avg_score = sum(s['score'] for s in st.session_state.sorted_students) / len(st.session_state.sorted_students)
+                        
+                        col_a, col_b, col_c = st.columns(3)
+                        col_a.metric("Top Performers (A grade)", len(top_performers))
+                        col_b.metric("Average Score", f"{avg_score:.1f}")
+                        col_c.metric("Total Students", len(st.session_state.sorted_students))
+                else:
+                    st.info("Generate student data to begin sorting analysis")
+        
+        elif application_type == "👥 Employee HR System":
+            st.markdown('<div class="real-world-card"><h3>👥 Employee HR Management System</h3><p>Sort employees for payroll, performance reviews, and organizational analysis</p></div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col2:
+                st.markdown("### 🎛️ Controls")
+                num_employees = st.slider("Number of Employees", 10, 100, 30)
+                sort_by_emp = st.selectbox("Sort By", ["Salary", "Experience", "Performance", "Department"])
+                sort_order_emp = st.radio("Order", ["Ascending", "Descending"], key="emp_order")
+                
+                if st.button("Generate Employee Data", type="primary"):
+                    employees = RealWorldSortingApplications.generate_employee_data(num_employees)
+                    st.session_state.employees_data = employees
+                
+                if st.button("Apply Employee Sorting") and 'employees_data' in st.session_state:
+                    data = st.session_state.employees_data.copy()
+                    reverse = sort_order_emp == "Descending"
+                    
+                    if sort_by_emp == "Salary":
+                        data.sort(key=lambda x: x['salary'], reverse=reverse)
+                    elif sort_by_emp == "Experience":
+                        data.sort(key=lambda x: x['experience'], reverse=reverse)
+                    elif sort_by_emp == "Performance":
+                        data.sort(key=lambda x: x['performance'], reverse=reverse)
+                    else:  # Department
+                        data.sort(key=lambda x: x['department'], reverse=reverse)
+                    
+                    st.session_state.sorted_employees = data
+            
+            with col1:
+                if 'employees_data' in st.session_state:
+                    # Display data
+                    st.markdown("#### Employee Overview")
+                    df_emp = pd.DataFrame(st.session_state.employees_data)
+                    
+                    if 'sorted_employees' in st.session_state:
+                        df_emp = pd.DataFrame(st.session_state.sorted_employees)
+                    
+                    st.dataframe(df_emp.head(10), use_container_width=True)
+                    
+                    # Create visualizations
+                    if 'sorted_employees' in st.session_state:
+                        fig1 = px.box(df_emp, x='department', y='salary', 
+                                     title=f"Salary Distribution by Department (Sorted by {sort_by_emp})")
+                        st.plotly_chart(fig1, use_container_width=True)
+                        
+                        fig2 = px.scatter(df_emp, x='experience', y='performance', 
+                                        color='department', size='salary',
+                                        title="Experience vs Performance Analysis")
+                        st.plotly_chart(fig2, use_container_width=True)
+                        
+                        # HR Insights
+                        avg_salary = df_emp['salary'].mean()
+                        top_performers = df_emp[df_emp['performance'] >= 8]
+                        senior_employees = df_emp[df_emp['experience'] >= 10]
+                        
+                        col_a, col_b, col_c = st.columns(3)
+                        col_a.metric("Average Salary", f"${avg_salary:,.0f}")
+                        col_b.metric("Top Performers", len(top_performers))
+                        col_c.metric("Senior Employees", len(senior_employees))
+                else:
+                    st.info("Generate employee data to begin HR analysis")
+        
+        elif application_type == "🛒 E-commerce Product Sorting":
+            st.markdown('<div class="real-world-card"><h3>🛒 E-commerce Product Management</h3><p>Sort products for better customer experience and inventory management</p></div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col2:
+                st.markdown("### 🎛️ Controls")
+                num_products = st.slider("Number of Products", 10, 100, 40)
+                sort_by_prod = st.selectbox("Sort By", ["Price", "Rating", "Sales", "Stock"])
+                sort_order_prod = st.radio("Order", ["Ascending", "Descending"], key="prod_order")
+                filter_category = st.selectbox("Filter by Category", ["All", "Electronics", "Clothing", "Books", "Home", "Sports"])
+                
+                if st.button("Generate Product Data", type="primary"):
+                    products = RealWorldSortingApplications.generate_ecommerce_data(num_products)
+                    st.session_state.products_data = products
+                
+                if st.button("Apply Product Sorting") and 'products_data' in st.session_state:
+                    data = st.session_state.products_data.copy()
+                    
+                    # Filter by category if specified
+                    if filter_category != "All":
+                        data = [p for p in data if p['category'] == filter_category]
+                    
+                    reverse = sort_order_prod == "Descending"
+                    
+                    if sort_by_prod == "Price":
+                        data.sort(key=lambda x: x['price'], reverse=reverse)
+                    elif sort_by_prod == "Rating":
+                        data.sort(key=lambda x: x['rating'], reverse=reverse)
+                    elif sort_by_prod == "Sales":
+                        data.sort(key=lambda x: x['sales'], reverse=reverse)
+                    else:  # Stock
+                        data.sort(key=lambda x: x['stock'], reverse=reverse)
+                    
+                    st.session_state.sorted_products = data
+            
+            with col1:
+                if 'products_data' in st.session_state:
+                    # Display data
+                    st.markdown("#### Product Catalog")
+                    df_prod = pd.DataFrame(st.session_state.products_data)
+                    
+                    if 'sorted_products' in st.session_state:
+                        df_prod = pd.DataFrame(st.session_state.sorted_products)
+                    
+                    st.dataframe(df_prod.head(10), use_container_width=True)
+                    
+                    # Create visualizations
+                    if 'sorted_products' in st.session_state:
+                        fig1 = px.scatter(df_prod, x='price', y='rating', 
+                                        color='category', size='sales',
+                                        title=f"Price vs Rating Analysis (Sorted by {sort_by_prod})")
+                        st.plotly_chart(fig1, use_container_width=True)
+                        
+                        fig2 = px.bar(df_prod.head(10), x='name', y='sales',
+                                     title="Top 10 Products by Sales")
+                        fig2.update_xaxes(tickangle=45)
+                        st.plotly_chart(fig2, use_container_width=True)
+                        
+                        # E-commerce Insights
+                        avg_price = df_prod['price'].mean()
+                        low_stock = df_prod[df_prod['stock'] < 10]
+                        top_rated = df_prod[df_prod['rating'] >= 4.5]
+                        
+                        col_a, col_b, col_c = st.columns(3)
+                        col_a.metric("Average Price", f"${avg_price:.2f}")
+                        col_b.metric("Low Stock Items", len(low_stock))
+                        col_c.metric("Highly Rated", len(top_rated))
+                else:
+                    st.info("Generate product data to begin e-commerce analysis")
+        
+        else:  # Financial Stock Analysis
+            st.markdown('<div class="real-world-card"><h3>📈 Financial Stock Analysis</h3><p>Sort stocks for investment decisions and portfolio management</p></div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col2:
+                st.markdown("### 🎛️ Controls")
+                num_stocks = st.slider("Number of Stocks", 10, 50, 25)
+                sort_by_stock = st.selectbox("Sort By", ["Price", "Volume", "Market Cap", "P/E Ratio", "Dividend"])
+                sort_order_stock = st.radio("Order", ["Ascending", "Descending"], key="stock_order")
+                
+                if st.button("Generate Stock Data", type="primary"):
+                    stocks = RealWorldSortingApplications.generate_financial_data(num_stocks)
+                    st.session_state.stocks_data = stocks
+                
+                if st.button("Apply Stock Sorting") and 'stocks_data' in st.session_state:
+                    data = st.session_state.stocks_data.copy()
+                    reverse = sort_order_stock == "Descending"
+                    
+                    if sort_by_stock == "Price":
+                        data.sort(key=lambda x: x['price'], reverse=reverse)
+                    elif sort_by_stock == "Volume":
+                        data.sort(key=lambda x: x['volume'], reverse=reverse)
+                    elif sort_by_stock == "Market Cap":
+                        data.sort(key=lambda x: x['market_cap'], reverse=reverse)
+                    elif sort_by_stock == "P/E Ratio":
+                        data.sort(key=lambda x: x['pe_ratio'], reverse=reverse)
+                    else:  # Dividend
+                        data.sort(key=lambda x: x['dividend'], reverse=reverse)
+                    
+                    st.session_state.sorted_stocks = data
+            
+            with col1:
+                if 'stocks_data' in st.session_state:
+                    # Display data
+                    st.markdown("#### Stock Portfolio")
+                    df_stock = pd.DataFrame(st.session_state.stocks_data)
+                    
+                    if 'sorted_stocks' in st.session_state:
+                        df_stock = pd.DataFrame(st.session_state.sorted_stocks)
+                    
+                    st.dataframe(df_stock.head(10), use_container_width=True)
+                    
+                    # Create visualizations
+                    if 'sorted_stocks' in st.session_state:
+                        fig1 = px.scatter(df_stock, x='pe_ratio', y='dividend', 
+                                        color='company', size='market_cap',
+                                        title=f"P/E Ratio vs Dividend Yield (Sorted by {sort_by_stock})")
+                        st.plotly_chart(fig1, use_container_width=True)
+                        
+                        fig2 = px.treemap(df_stock.head(15), path=['company'], values='market_cap',
+                                         title="Market Cap Distribution (Top 15)")
+                        st.plotly_chart(fig2, use_container_width=True)
+                        
+                        # Financial Insights
+                        avg_pe = df_stock['pe_ratio'].mean()
+                        high_dividend = df_stock[df_stock['dividend'] >= 5.0]
+                        large_cap = df_stock[df_stock['market_cap'] >= 1000000000]
+                        
+                        col_a, col_b, col_c = st.columns(3)
+                        col_a.metric("Avg P/E Ratio", f"{avg_pe:.1f}")
+                        col_b.metric("High Dividend Stocks", len(high_dividend))
+                        col_c.metric("Large Cap Stocks", len(large_cap))
+                else:
+                    st.info("Generate stock data to begin financial analysis")
+        
+        # Real-world sorting applications explanation
+        st.markdown("---")
+        st.markdown("### 💡 Why Sorting Matters in Real Applications")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            **Performance Impact:**
+            - **Database queries**: Sorted data enables binary search (O(log n) vs O(n))
+            - **User experience**: Quick filtering and searching in web applications
+            - **Memory efficiency**: Sorted data often compresses better
+            - **Cache optimization**: Sequential access patterns improve performance
+            """)
+            
+            st.markdown("""
+            **Business Applications:**
+            - **Recommendation systems**: Sort products by relevance score
+            - **Financial analysis**: Rank investments by various metrics
+            - **Logistics**: Optimize delivery routes and schedules
+            - **Data analytics**: Identify trends and outliers efficiently
+            """)
+        
+        with col2:
+            st.markdown("""
+            **Algorithm Selection Criteria:**
+            - **Data size**: Small arrays → Insertion sort, Large → Quick/Merge sort
+            - **Data characteristics**: Nearly sorted → Insertion sort
+            - **Stability requirement**: Stable sorting → Merge sort
+            - **Memory constraints**: In-place sorting → Quick sort, Heap sort
+            """)
+            
+            st.markdown("""
+            **Modern Implementations:**
+            - **Hybrid algorithms**: Python's Timsort combines multiple strategies
+            - **Parallel sorting**: Multi-core processors enable concurrent sorting
+            - **External sorting**: Handle datasets larger than memory
+            - **Specialized sorting**: Radix sort for integers, counting sort for small ranges
+            """)
+    
+    # Performance Analysis Tab (Enhanced)
+    with sort_tabs[2]:
+        st.subheader("🆚 Comprehensive Performance Analysis")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col2:
+            st.markdown("### ⚙️ Analysis Settings")
+            
+            # Test configuration
+            test_sizes = st.multiselect(
+                "Array Sizes to Test",
+                [10, 25, 50, 100, 200, 500],
+                default=[10, 25, 50, 100]
+            )
+            
+            test_types = st.multiselect(
+                "Array Types to Test",
+                ["Random", "Nearly Sorted", "Reverse Sorted", "Few Unique"],
+                default=["Random", "Nearly Sorted"]
+            )
+            
+            algorithms_to_test = st.multiselect(
+                "Algorithms to Test",
+                ["Bubble Sort", "Selection Sort", "Insertion Sort", "Quick Sort", "Merge Sort", "Heap Sort"],
+                default=["Quick Sort", "Merge Sort", "Heap Sort"]
+            )
+            
+            if st.button("🚀 Run Comprehensive Analysis", type="primary"):
+                if test_sizes and test_types and algorithms_to_test:
+                    comprehensive_results = []
+                    total_tests = len(test_sizes) * len(test_types) * len(algorithms_to_test)
+                    current_test = 0
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    for size in test_sizes:
+                        for array_type in test_types:
+                            # Generate test array
+                            if array_type == "Random":
+                                test_arr = [random.randint(1, 100) for _ in range(size)]
+                            elif array_type == "Nearly Sorted":
+                                test_arr = list(range(1, size + 1))
+                                for _ in range(size // 10):
+                                    i, j = random.randint(0, size - 1), random.randint(0, size - 1)
+                                    test_arr[i], test_arr[j] = test_arr[j], test_arr[i]
+                            elif array_type == "Reverse Sorted":
+                                test_arr = list(range(size, 0, -1))
+                            else:  # Few Unique
+                                unique_vals = [random.randint(1, 10) for _ in range(5)]
+                                test_arr = [random.choice(unique_vals) for _ in range(size)]
+                            
+                            for algo in algorithms_to_test:
+                                current_test += 1
+                                status_text.text(f"Testing {algo} on {array_type} array of size {size}...")
+                                progress_bar.progress(current_test / total_tests)
+                                
+                                start_time = time.time()
+                                try:
+                                    if algo == "Bubble Sort":
+                                        steps = SortingAlgorithms.bubble_sort(test_arr)
+                                    elif algo == "Selection Sort":
+                                        steps = SortingAlgorithms.selection_sort(test_arr)
+                                    elif algo == "Insertion Sort":
+                                        steps = SortingAlgorithms.insertion_sort(test_arr)
+                                    elif algo == "Quick Sort":
+                                        steps = SortingAlgorithms.quick_sort(test_arr)
+                                    elif algo == "Merge Sort":
+                                        steps = SortingAlgorithms.merge_sort(test_arr)
+                                    else:  # Heap Sort
+                                        steps = SortingAlgorithms.heap_sort(test_arr)
+                                    
+                                    end_time = time.time()
+                                    execution_time = (end_time - start_time) * 1000
+                                    
+                                    comprehensive_results.append({
+                                        "Algorithm": algo,
+                                        "Array Size": size,
+                                        "Array Type": array_type,
+                                        "Execution Time (ms)": execution_time,
+                                        "Steps": len(steps)
+                                    })
+                                except Exception as e:
+                                    comprehensive_results.append({
+                                        "Algorithm": algo,
+                                        "Array Size": size,
+                                        "Array Type": array_type,
+                                        "Execution Time (ms)": float('inf'),
+                                        "Steps": 0
+                                    })
+                    
+                    st.session_state.comprehensive_results = comprehensive_results
+                    progress_bar.empty()
+                    status_text.empty()
+                else:
+                    st.error("Please select at least one option from each category.")
+        
+        with col1:
+            if 'comprehensive_results' in st.session_state:
+                results_df = pd.DataFrame(st.session_state.comprehensive_results)
+                
+                # Display results table
+                st.markdown("#### Detailed Results")
+                st.dataframe(results_df, use_container_width=True)
+                
+                # Performance visualization by algorithm
+                fig1 = px.line(results_df, x='Array Size', y='Execution Time (ms)', 
+                              color='Algorithm', facet_col='Array Type',
+                              title="Algorithm Performance vs Array Size")
+                st.plotly_chart(fig1, use_container_width=True)
+                
+                # Heatmap of performance
+                pivot_table = results_df.pivot_table(
+                    values='Execution Time (ms)', 
+                    index='Algorithm', 
+                    columns=['Array Size', 'Array Type'],
+                    aggfunc='mean'
+                )
+                
+                fig2 = px.imshow(pivot_table, aspect="auto", 
+                               title="Performance Heatmap (Darker = Faster)")
+                st.plotly_chart(fig2, use_container_width=True)
+                
+                # Algorithm efficiency comparison
+                avg_performance = results_df.groupby('Algorithm')['Execution Time (ms)'].mean().sort_values()
+                
+                fig3 = px.bar(x=avg_performance.index, y=avg_performance.values,
+                             title="Average Performance by Algorithm",
+                             labels={'x': 'Algorithm', 'y': 'Avg Execution Time (ms)'})
+                st.plotly_chart(fig3, use_container_width=True)
+                
+                # Best algorithm recommendation
+                st.markdown("#### 🏆 Algorithm Recommendations")
+                
+                best_overall = avg_performance.index[0]
+                st.success(f"**Best Overall Performance:** {best_overall}")
+                
+                # Best for different scenarios
+                for arr_type in results_df['Array Type'].unique():
+                    type_data = results_df[results_df['Array Type'] == arr_type]
+                    best_for_type = type_data.groupby('Algorithm')['Execution Time (ms)'].mean().idxmin()
+                    st.info(f"**Best for {arr_type} arrays:** {best_for_type}")
             else:
-                status_placeholder.info(f"Status: {action.replace('_', ' ').title()}")
-            
-            # Show metrics if enabled
-            if show_array_access or show_comparisons:
-                col1, col2, col3, col4 = metrics_placeholder.columns(4)
-                if show_comparisons:
-                    col1.metric("Comparisons", comparisons)
-                    col2.metric("Swaps", swaps)
-                if show_array_access:
-                    col3.metric("Array Accesses", array_accesses)
-                col4.metric("Progress", f"{progress*100:.1f}%")
-            
-            # Animation delay
-            time.sleep(animation_speed)
-        
-        # Final success message with statistics
-        st.balloons()
-        
-        # Final metrics
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Steps", len(steps))
-        col2.metric("Execution Time", f"{total_time:.2f} ms")
-        col3.metric("Total Comparisons", comparisons)
-        col4.metric("Total Swaps", swaps)
-        
-        st.success(f"🎉 {sort_algorithm} completed!")
-        
-        # Clear placeholders
-        progress_bar.empty()
-        status_placeholder.empty()
+                st.info("🚀 Run comprehensive analysis to see detailed performance comparisons across different scenarios.")
     
     # Algorithm information section
     st.markdown("---")
@@ -1612,7 +2324,7 @@ with tab2:
     sort_algo_tabs = st.tabs(["Current Algorithm", "All Algorithms Comparison", "Complexity Analysis"])
     
     with sort_algo_tabs[0]:
-        if sort_algorithm in SORTING_INFO:
+        if 'sort_algorithm' in locals() and sort_algorithm in SORTING_INFO:
             algo_info = SORTING_INFO[sort_algorithm]
             
             st.markdown(f"### {sort_algorithm}")
@@ -1762,24 +2474,24 @@ st.markdown("""
     <h3>🚀 Advanced PathFinder & Sort Visualizer</h3>
     <div style='display: flex; justify-content: center; gap: 40px; margin: 20px 0;'>
         <div>
-            <h4>🗺️ Pathfinding Features</h4>
-            <p>✅ Interactive grid-based pathfinding</p>
-            <p>✅ Real-world map integration</p>
-            <p>✅ 6 different algorithms</p>
-            <p>✅ Performance comparison</p>
-            <p>✅ Multiple map types & obstacles</p>
+            <h4>🗺️ Enhanced Pathfinding Features</h4>
+            <p>✅ Interactive click-to-place grid points</p>
+            <p>✅ Real-world map with pointer placement</p>
+            <p>✅ 6 different algorithms with comparison</p>
+            <p>✅ Multiple map types & obstacle patterns</p>
+            <p>✅ Performance metrics & analysis</p>
         </div>
         <div>
-            <h4>📊 Sorting Features</h4>
+            <h4>📊 Enhanced Sorting Features</h4>
             <p>✅ Animated step-by-step visualization</p>
-            <p>✅ 6 sorting algorithms</p>
-            <p>✅ Multiple array types</p>
-            <p>✅ Performance metrics</p>
-            <p>✅ Algorithm comparison</p>
+            <p>✅ Real-world application scenarios</p>
+            <p>✅ Comprehensive performance analysis</p>
+            <p>✅ Interactive data management systems</p>
+            <p>✅ Business intelligence applications</p>
         </div>
     </div>
     <p><strong>Built with ❤️ using:</strong> Streamlit • Plotly • Folium • NumPy • Pandas</p>
-    <p><em>Enhanced with better error handling, real map integration, and comprehensive algorithm analysis</em></p>
+    <p><em>Enhanced with interactive map controls, real-world sorting applications, and comprehensive performance analysis</em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1794,6 +2506,11 @@ if st.sidebar.button("🔧 Show Advanced Settings"):
         max_grid_size = st.slider("Max Grid Size", 20, 100, 50)
         animation_quality = st.selectbox("Animation Quality", ["High", "Medium", "Low"])
         
+        # Interactive settings
+        st.markdown("**Interaction Settings:**")
+        click_sensitivity = st.slider("Click Sensitivity", 0.1, 2.0, 1.0)
+        hover_enabled = st.checkbox("Enable Hover Effects", value=True)
+        
         # Debug settings
         st.markdown("**Debug Options:**")
         show_debug_info = st.checkbox("Show Debug Information")
@@ -1802,15 +2519,31 @@ if st.sidebar.button("🔧 Show Advanced Settings"):
         # Export settings
         st.markdown("**Export Options:**")
         if st.button("📁 Export Results"):
-            st.info("Export functionality would save current results to file")
+            if 'comprehensive_results' in st.session_state:
+                csv = pd.DataFrame(st.session_state.comprehensive_results).to_csv(index=False)
+                st.download_button(
+                    label="Download Performance Analysis CSV",
+                    data=csv,
+                    file_name="sorting_performance_analysis.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("No analysis results to export. Run performance analysis first.")
         
         if show_debug_info:
             st.markdown("**Debug Information:**")
-            st.json({
+            debug_info = {
                 "session_state_keys": list(st.session_state.keys()),
                 "current_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "streamlit_version": st.__version__
-            })
+                "streamlit_version": st.__version__,
+                "active_features": {
+                    "grid_pathfinding": 'grid' in st.session_state,
+                    "real_maps": 'real_map' in st.session_state,
+                    "sorting_data": 'sorting_array' in st.session_state,
+                    "real_world_apps": any(key in st.session_state for key in ['students_data', 'employees_data', 'products_data', 'stocks_data'])
+                }
+            }
+            st.json(debug_info)
 
 # Session state cleanup
 if st.sidebar.button("🧹 Clear All Data"):
