@@ -439,7 +439,7 @@ class RealMapPathfinder:
         
         return distance
 
-# Enhanced Sorting algorithms (keeping the good parts)
+# Enhanced Sorting algorithms
 class SortingAlgorithms:
     @staticmethod
     def bubble_sort(arr):
@@ -658,7 +658,65 @@ PATHFINDING_INFO = {
         "cons": ["Not optimal", "Can get stuck in infinite paths", "May not find shortest path", "Depth-dependent"]
     },
     "Greedy Best-First": {
-        "description": ["Uses extra memory", "Not in-place", "Slower than quicksort in practice", "Overhead for small arrays"]
+        "description": "Uses only heuristic function to guide search towards goal. Fast but not guaranteed optimal.",
+        "time_complexity": "O(b^m) where m is max depth",
+        "space_complexity": "O(b^m)",
+        "optimal": "No",
+        "use_case": "When speed is more important than optimality",
+        "pros": ["Very fast", "Low memory usage", "Simple concept", "Good for approximate solutions"],
+        "cons": ["Not optimal", "Can get trapped", "Heavily dependent on heuristic quality", "May fail completely"]
+    },
+    "Bidirectional Search": {
+        "description": "Searches simultaneously from start and goal until they meet. Significantly reduces search space.",
+        "time_complexity": "O(b^(d/2))",
+        "space_complexity": "O(b^(d/2))",
+        "optimal": "Yes (when both directions use optimal algorithms)",
+        "use_case": "Large search spaces with known start and goal",
+        "pros": ["Much faster than unidirectional", "Reduces search space exponentially", "Can be very efficient"],
+        "cons": ["More complex implementation", "Requires both start and goal", "Higher memory usage", "Synchronization complexity"]
+    }
+}
+
+SORTING_INFO = {
+    "Bubble Sort": {
+        "description": "Repeatedly compares adjacent elements and swaps them if they're in wrong order until no swaps needed.",
+        "best_case": "O(n)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "Yes",
+        "use_case": "Educational purposes, very small datasets",
+        "pros": ["Simple to understand", "In-place sorting", "Stable", "Detects if list is sorted"],
+        "cons": ["Very inefficient for large data", "Many comparisons", "Poor performance"]
+    },
+    "Selection Sort": {
+        "description": "Finds minimum element and places it at beginning, then finds second minimum, and continues.",
+        "best_case": "O(n²)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "No",
+        "use_case": "When memory writes are costly",
+        "pros": ["Simple implementation", "In-place sorting", "Minimum swaps", "Consistent performance"],
+        "cons": ["Always O(n²)", "Not stable", "Inefficient for large data", "No early termination"]
+    },
+    "Insertion Sort": {
+        "description": "Builds sorted array one element at a time by inserting each element in its correct position.",
+        "best_case": "O(n)", "average_case": "O(n²)", "worst_case": "O(n²)",
+        "space_complexity": "O(1)", "stable": "Yes",
+        "use_case": "Small datasets, nearly sorted arrays, online algorithms",
+        "pros": ["Efficient for small data", "Stable", "In-place", "Adaptive", "Simple implementation"],
+        "cons": ["Inefficient for large data", "O(n²) average case", "More writes than selection sort"]
+    },
+    "Quick Sort": {
+        "description": "Divides array around pivot element and recursively sorts partitions. Very efficient average case.",
+        "best_case": "O(n log n)", "average_case": "O(n log n)", "worst_case": "O(n²)",
+        "space_complexity": "O(log n)", "stable": "No",
+        "use_case": "General purpose sorting when average performance matters",
+        "pros": ["Fast average performance", "In-place sorting", "Cache efficient", "Widely used"],
+        "cons": ["Worst case O(n²)", "Not stable", "Recursive overhead", "Pivot selection critical"]
+    },
+    "Merge Sort": {
+        "description": "Divides array into halves, recursively sorts them, then merges sorted halves together.",
+        "best_case": "O(n log n)", "average_case": "O(n log n)", "worst_case": "O(n log n)",
+        "space_complexity": "O(n)", "stable": "Yes",
+        "use_case": "When stable sorting and consistent performance needed",
+        "pros": ["Guaranteed O(n log n)", "Stable", "Predictable performance", "Good for linked lists"],
+        "cons": ["Uses extra memory", "Not in-place", "Slower than quicksort in practice", "Overhead for small arrays"]
     },
     "Heap Sort": {
         "description": "Uses binary heap data structure to repeatedly extract maximum element and build sorted array.",
@@ -822,32 +880,28 @@ REAL_WORLD_SORTING_EXAMPLES = {
             {"name": "Education", "description": "Teaching basic sorting principles to beginners"},
             {"name": "Small Data Sets", "description": "Organizing small lists where simplicity matters more than efficiency"},
             {"name": "Nearly Sorted Data", "description": "Data that is already almost sorted with few out-of-place elements"}
-        ],
-        "visual": "education_sorting.png"
+        ]
     },
     "Selection Sort": {
         "applications": [
             {"name": "Memory Constrained Systems", "description": "Embedded systems with limited memory where minimal swaps are needed"},
             {"name": "Flash Memory Devices", "description": "Where write operations are expensive and should be minimized"},
             {"name": "Small Files", "description": "Organizing small files or records where the overhead of more complex algorithms isn't justified"}
-        ],
-        "visual": "embedded_systems.png"
+        ]
     },
     "Insertion Sort": {
         "applications": [
             {"name": "Online Sorting", "description": "Sorting data as it arrives in real-time (like card sorting in a card game)"},
             {"name": "Database Operations", "description": "Maintaining sorted lists as new records are inserted"},
             {"name": "Continuously Updated Lists", "description": "Applications that require maintaining a sorted order as new items arrive"}
-        ],
-        "visual": "card_sorting.png"
+        ]
     },
     "Quick Sort": {
         "applications": [
             {"name": "Operating Systems", "description": "Used in various OS components including the Windows NT kernel"},
             {"name": "Programming Languages", "description": "Default sorting algorithm in many language libraries (Java, C++)"},
             {"name": "Database Systems", "description": "Used for efficient sorting of large datasets in memory"}
-        ],
-        "visual": "os_sorting.png"
+        ]
     },
     "Merge Sort": {
         "applications": [
@@ -855,8 +909,7 @@ REAL_WORLD_SORTING_EXAMPLES = {
             {"name": "Databases", "description": "Merging results from different database queries"},
             {"name": "Version Control", "description": "Merging changes in version control systems like Git"},
             {"name": "Network Traffic Analysis", "description": "Sorting and analyzing large network packet logs"}
-        ],
-        "visual": "database_merge.png"
+        ]
     },
     "Heap Sort": {
         "applications": [
@@ -864,8 +917,7 @@ REAL_WORLD_SORTING_EXAMPLES = {
             {"name": "Graph Algorithms", "description": "Dijkstra's algorithm for shortest paths uses heap structures"},
             {"name": "K-way Merging", "description": "Finding k smallest/largest elements in a large dataset"},
             {"name": "Memory Management", "description": "Efficient allocation of memory blocks in systems"}
-        ],
-        "visual": "priority_queue.png"
+        ]
     }
 }
 
@@ -918,11 +970,6 @@ with tab1:
                 ["Set Start", "Set Goal", "Add Obstacle", "Remove Obstacle"],
                 key="click_mode"
             )
-            
-            # Store the click mode in session state
-            st.session_state.current_click_mode = click_mode
-            
-            st.markdown('<p class="interactive-tip">Click directly on the grid to place points or obstacles!</p>', unsafe_allow_html=True)
             
             # Manual point setting (still available as an alternative)
             with st.expander("Manual Coordinates Input"):
@@ -978,14 +1025,9 @@ with tab1:
             
             if st.button("🧹 Clear Grid"):
                 st.session_state.grid = GridPathfinder(grid_width, grid_height)
-                if 'start_point' in st.session_state:
-                    del st.session_state.start_point
-                if 'goal_point' in st.session_state:
-                    del st.session_state.goal_point
-                if 'grid_path' in st.session_state:
-                    del st.session_state.grid_path
-                if 'grid_visited' in st.session_state:
-                    del st.session_state.grid_visited
+                for key in ['start_point', 'goal_point', 'grid_path', 'grid_visited']:
+                    if key in st.session_state:
+                        del st.session_state[key]
                 st.session_state.grid_updated = True
             
             # Results display
@@ -1018,57 +1060,19 @@ with tab1:
             visited = st.session_state.get('grid_visited', [])
             start = st.session_state.get('start_point', None)
             goal = st.session_state.get('goal_point', None)
-            click_mode = st.session_state.get('current_click_mode', None)
             
             fig = create_grid_visualization(
                 st.session_state.grid, path, visited, start, goal, click_mode
             )
             
-            # Display the grid with click event handling
-            grid_chart = st.plotly_chart(fig, use_container_width=True)
-            
-            # Handle grid clicks for interactive placing
-            clicked_point = st.empty()
-            
-            # Get last click data if available
-            last_click_data = st.session_state.get('last_click_data', None)
-            
-            # Check if we have new click data from Plotly
-            if last_click_data:
-                x, y = int(last_click_data['x']), int(last_click_data['y'])
-                
-                # Only process if within grid bounds
-                if 0 <= x < grid_width and 0 <= y < grid_height:
-                    # Handle click based on current mode
-                    if click_mode == "Set Start":
-                        st.session_state.start_point = (x, y)
-                        st.session_state.grid.obstacles.discard((x, y))  # Remove obstacle if exists
-                        clicked_point.info(f"Start point set to ({x}, {y})")
-                    
-                    elif click_mode == "Set Goal":
-                        st.session_state.goal_point = (x, y)
-                        st.session_state.grid.obstacles.discard((x, y))  # Remove obstacle if exists
-                        clicked_point.info(f"Goal point set to ({x}, {y})")
-                    
-                    elif click_mode == "Add Obstacle":
-                        # Don't add obstacle if it's the start or goal point
-                        if (x, y) != st.session_state.get('start_point') and (x, y) != st.session_state.get('goal_point'):
-                            st.session_state.grid.set_obstacle(x, y)
-                            clicked_point.info(f"Obstacle added at ({x}, {y})")
-                    
-                    elif click_mode == "Remove Obstacle":
-                        st.session_state.grid.remove_obstacle(x, y)
-                        clicked_point.info(f"Obstacle removed at ({x}, {y})")
-                
-                # Clear click data after processing
-                st.session_state.last_click_data = None
-                st.rerun()  # Force rerun to update the visualization
+            # Display the grid
+            st.plotly_chart(fig, use_container_width=True)
             
             # Instructions
             st.info("""
             🖱️ **Instructions:**
-            1. Select a click mode (Set Start, Set Goal, Add/Remove Obstacle)
-            2. Click directly on the grid to place items
+            1. Select a click mode and use manual coordinates or sample maps
+            2. Set start and goal points
             3. Choose an algorithm and click 'Find Path'
             4. View the results and try different algorithms!
             
@@ -1079,37 +1083,6 @@ with tab1:
             - 🔵 Light Blue: Visited nodes
             - ⬛ Black: Obstacles
             """)
-            
-            # Plotly click event handler (JavaScript)
-            st.markdown("""
-            <script>
-                const gridClickHandler = () => {
-                    const gridPlot = document.querySelector('[data-testid="stPlotlyChart"] .js-plotly-plot');
-                    if (gridPlot) {
-                        gridPlot.on('plotly_click', (data) => {
-                            const clickData = {
-                                x: data.points[0].x,
-                                y: data.points[0].y
-                            };
-                            // Store click data to session state
-                            window.parent.postMessage({
-                                type: "streamlit:setComponentValue",
-                                value: clickData,
-                                key: "last_click_data"
-                            }, "*");
-                        });
-                    }
-                };
-                
-                // Run when document is ready and whenever Streamlit reruns
-                if (document.readyState === 'complete') {
-                    gridClickHandler();
-                } else {
-                    window.addEventListener('load', gridClickHandler);
-                }
-                window.addEventListener('streamlit:render', gridClickHandler);
-            </script>
-            """, unsafe_allow_html=True)
     
     # Real Maps Tab
     with pathfind_tabs[1]:
@@ -1136,36 +1109,12 @@ with tab1:
                 ["OpenStreetMap", "Stamen Terrain", "Stamen Toner", "CartoDB positron"]
             )
             
-            # Interactive marker placement
-            st.markdown("### 📍 Interactive Mode")
-            st.markdown('<p class="interactive-tip">Click directly on the map to place start and end points!</p>', unsafe_allow_html=True)
-            
-            map_click_mode = st.radio(
-                "Map Click Mode",
-                ["Set Start Point", "Set End Point"],
-                key="map_click_mode"
-            )
-            
-            # Store map click mode in session state
-            st.session_state.current_map_click_mode = map_click_mode
-            
             if st.button("🗺️ Create Route", type="primary"):
                 real_map_finder = RealMapPathfinder()
                 
                 with st.spinner("Geocoding locations..."):
-                    start_coords = None
-                    end_coords = None
-                    
-                    # Use clicked coordinates if available, otherwise geocode from text
-                    if 'map_start_coords' in st.session_state:
-                        start_coords = st.session_state.map_start_coords
-                    else:
-                        start_coords = real_map_finder.geocode(start_location)
-                        
-                    if 'map_end_coords' in st.session_state:
-                        end_coords = st.session_state.map_end_coords
-                    else:
-                        end_coords = real_map_finder.geocode(end_location)
+                    start_coords = real_map_finder.geocode(start_location)
+                    end_coords = real_map_finder.geocode(end_location)
                 
                 if start_coords and end_coords:
                     with st.spinner("Calculating route..."):
@@ -1214,9 +1163,6 @@ with tab1:
                             popup=f"Route: {route_data['distance']:.1f} km"
                         ).add_to(m)
                         
-                        # Add a click handler for the map
-                        m.add_child(folium.LatLngPopup())
-                        
                         st.session_state.real_map = m
                         st.session_state.route_data = route_data
                         
@@ -1244,7 +1190,140 @@ with tab1:
                 st.session_state.temp_end = end_loc
                 st.rerun()
         
-       with col1:
+        with col1:
+            # Initialize a default map if none exists
+            if 'real_map' not in st.session_state:
+                default_location = [40.7128, -74.0060]  # New York City coordinates
+                
+                default_map = folium.Map(
+                    location=default_location, 
+                    zoom_start=5,
+                    tiles="OpenStreetMap"
+                )
+                
+                # Add a "Click to select" message
+                folium.Marker(
+                    location=default_location,
+                    popup="Enter locations and click 'Create Route'!",
+                    icon=folium.Icon(color='purple', icon='info-sign')
+                ).add_to(default_map)
+                
+                st.session_state.real_map = default_map
+            
+            # Display the map
+            st_folium(st.session_state.real_map, width=700, height=500)
+            
+            # Show route data if available
+            if 'route_data' in st.session_state:
+                route = st.session_state.route_data
+                st.success(f"✅ Route calculated: {route['distance']:.1f} km, ~{route['duration']/3600:.1f} hours")
+            else:
+                st.info("""
+                🗺️ **Real Map Features:**
+                - Enter start and end locations
+                - Choose transport mode (driving, walking, cycling)  
+                - Select map style
+                - View calculated routes with distance and time
+                """)
+    
+    # Algorithm Comparison Tab
+    with pathfind_tabs[2]:
+        st.subheader("🆚 Algorithm Performance Comparison")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col2:
+            st.markdown("### ⚙️ Comparison Settings")
+            
+            comp_width = st.slider("Grid Width", 10, 30, 20, key="comp_width")
+            comp_height = st.slider("Grid Height", 10, 30, 15, key="comp_height")
+            
+            comp_map_type = st.selectbox(
+                "Map Type", 
+                ["Random Obstacles", "Maze", "Empty Grid", "Diagonal Barriers", "Rooms"],
+                key="comp_map"
+            )
+            
+            obstacle_density = st.slider("Obstacle Density", 0.0, 0.5, 0.2) if comp_map_type == "Random Obstacles" else None
+            
+            if st.button("🏁 Run Comparison", type="primary"):
+                # Create test grid
+                test_grid = GridPathfinder(comp_width, comp_height)
+                sample_maps = create_sample_maps()
+                
+                if comp_map_type == "Random Obstacles":
+                    obstacles = create_random_obstacles(comp_width, comp_height, obstacle_density)
+                else:
+                    obstacles = sample_maps[comp_map_type](comp_width, comp_height)
+                
+                test_grid.obstacles = obstacles
+                
+                # Set start and goal
+                start = (0, 0)
+                goal = (comp_width-1, comp_height-1)
+                
+                # Ensure start and goal are not obstacles
+                test_grid.obstacles.discard(start)
+                test_grid.obstacles.discard(goal)
+                
+                # Test all algorithms
+                algorithms = [
+                    "A* (A-Star)", "Dijkstra", "BFS (Breadth-First Search)",
+                    "DFS (Depth-First Search)", "Greedy Best-First", "Bidirectional Search"
+                ]
+                
+                results = []
+                progress_bar = st.progress(0)
+                
+                for i, algo in enumerate(algorithms):
+                    start_time = time.time()
+                    
+                    try:
+                        if algo == "A* (A-Star)":
+                            path, visited = PathfindingAlgorithms.a_star(test_grid, start, goal)
+                        elif algo == "Dijkstra":
+                            path, visited = PathfindingAlgorithms.dijkstra(test_grid, start, goal)
+                        elif algo == "BFS (Breadth-First Search)":
+                            path, visited = PathfindingAlgorithms.bfs(test_grid, start, goal)
+                        elif algo == "DFS (Depth-First Search)":
+                            path, visited = PathfindingAlgorithms.dfs(test_grid, start, goal)
+                        elif algo == "Greedy Best-First":
+                            path, visited = PathfindingAlgorithms.greedy_best_first(test_grid, start, goal)
+                        else:  # Bidirectional Search
+                            path, visited = PathfindingAlgorithms.bidirectional_search(test_grid, start, goal)
+                        
+                        end_time = time.time()
+                        execution_time = (end_time - start_time) * 1000
+                        
+                        results.append({
+                            "Algorithm": algo,
+                            "Path Length": len(path) if path else 0,
+                            "Nodes Visited": len(visited),
+                            "Execution Time (ms)": f"{execution_time:.2f}",
+                            "Path Found": "Yes" if path else "No",
+                            "Efficiency (%)": f"{(len(path)/len(visited)*100):.1f}" if path and visited else "0"
+                        })
+                        
+                    except Exception as e:
+                        results.append({
+                            "Algorithm": algo,
+                            "Path Length": "Error",
+                            "Nodes Visited": "Error", 
+                            "Execution Time (ms)": "Error",
+                            "Path Found": "Error",
+                            "Efficiency (%)": "Error"
+                        })
+                    
+                    progress_bar.progress((i + 1) / len(algorithms))
+                
+                st.session_state.comparison_results = results
+                st.session_state.comparison_grid = test_grid
+                st.session_state.comparison_start = start
+                st.session_state.comparison_goal = goal
+                
+                progress_bar.empty()
+        
+        with col1:
             if 'comparison_results' in st.session_state:
                 # Display results table
                 df = pd.DataFrame(st.session_state.comparison_results)
@@ -1322,7 +1401,7 @@ with tab1:
                 for con in info['cons']:
                     st.markdown(f"❌ {con}")
 
-# Tab 2: Sorting Visualizer (keeping the excellent implementation)
+# Tab 2: Sorting Visualizer
 with tab2:
     st.header("📊 Advanced Sorting Algorithm Visualizer")
     
@@ -1666,7 +1745,7 @@ with tab2:
             
             st.markdown(f"**Space: ** {algo_info['space_complexity']}")
             st.markdown(f"**Stable: ** {algo_info['stable']}")
-            
+        
         with col1:
             # Display real-world applications
             st.markdown("### 🏭 Real-World Use Cases")
@@ -1746,389 +1825,11 @@ with tab2:
                     st.markdown("- It's intuitive and easy to understand")
                     st.markdown("- The step-by-step process is easy to visualize")
                     st.markdown("- It works well for small datasets like a classroom example")
-            
-            elif real_world_algo == "Insertion Sort":
-                st.markdown("#### 🃏 Card Sorting Simulation")
-                
-                # Simulate a hand of cards
-                card_values = {"A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, 
-                            "8": 8, "9": 9, "10": 10, "J": 11, "Q": 12, "K": 13}
-                
-                card_suits = ["♥", "♦", "♣", "♠"]
-                
-                # Generate random cards
-                random_cards = []
-                for _ in range(7):
-                    value = random.choice(list(card_values.keys()))
-                    suit = random.choice(card_suits)
-                    random_cards.append(f"{value}{suit}")
-                
-                st.markdown("You're dealt this hand of cards:")
-                
-                # Display cards horizontally
-                cols = st.columns(len(random_cards))
-                for i, card in enumerate(random_cards):
-                    cols[i].markdown(f"""
-                    <div style="border: 2px solid black; border-radius: 10px; padding: 10px; text-align: center; background-color: white; color: {'red' if card[-1] in ['♥', '♦'] else 'black'}; font-size: 24px;">
-                        {card}
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                if st.button("Sort Cards by Value"):
-                    # Sort cards by value
-                    def card_value(card):
-                        return card_values[card[:-1]]
-                    
-                    sorted_cards = sorted(random_cards, key=card_value)
-                    
-                    st.markdown("As you receive each card, you insert it into the correct position:")
-                    
-                    # Display sorted cards horizontally
-                    cols = st.columns(len(sorted_cards))
-                    for i, card in enumerate(sorted_cards):
-                        cols[i].markdown(f"""
-                        <div style="border: 2px solid black; border-radius: 10px; padding: 10px; text-align: center; background-color: white; color: {'red' if card[-1] in ['♥', '♦'] else 'black'}; font-size: 24px;">
-                            {card}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown("Insertion sort mimics how humans naturally sort cards:")
-                    st.markdown("- We take one card at a time")
-                    st.markdown("- Insert it in the right position among already-sorted cards")
-                    st.markdown("- Very efficient for small datasets or nearly sorted data")
-            
-            elif real_world_algo == "Quick Sort":
-                st.markdown("#### 💻 Operating System File Sorting")
-                
-                # Simulate files with sizes
-                file_types = [".txt", ".jpg", ".pdf", ".mp3", ".docx", ".xlsx", ".html", ".zip"]
-                file_names = ["report", "image", "document", "project", "backup", "data", "profile", "notes"]
-                
-                # Generate random files with sizes
-                files = []
-                for _ in range(10):
-                    name = random.choice(file_names) + random.choice(file_types)
-                    size = random.randint(1, 1000)  # Size in KB
-                    files.append({"name": name, "size": size})
-                
-                st.markdown("Your file explorer showing files by size:")
-                
-                # Display files as a table
-                df_files = pd.DataFrame(files)
-                st.dataframe(df_files, use_container_width=True)
-                
-                if st.button("Sort Files by Size"):
-                    # Sort files by size
-                    sorted_files = sorted(files, key=lambda x: x["size"], reverse=True)
-                    
-                    st.markdown("Files sorted by size (largest first):")
-                    
-                    # Display sorted files
-                    df_sorted = pd.DataFrame(sorted_files)
-                    st.dataframe(df_sorted, use_container_width=True)
-                    
-                    # Create visualization of file sizes
-                    fig = go.Figure(data=[
-                        go.Bar(
-                            x=[f["name"] for f in sorted_files],
-                            y=[f["size"] for f in sorted_files],
-                            marker_color='lightblue',
-                            text=[f"{f['size']} KB" for f in sorted_files],
-                            textposition='outside'
-                        )
-                    ])
-                    
-                    fig.update_layout(
-                        title="Files Sorted by Size",
-                        xaxis_title="Filename",
-                        yaxis_title="Size (KB)",
-                        height=400
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    st.markdown("Operating systems like Windows use Quicksort because:")
-                    st.markdown("- It's very efficient for large datasets")
-                    st.markdown("- Has good average-case performance")
-                    st.markdown("- Works well with virtual memory systems")
-                    st.markdown("- Efficiently handles diverse file sizes")
-            
-            elif real_world_algo == "Merge Sort":
-                st.markdown("#### 📊 Database Query Result Merging")
-                
-                # Simulate database queries from different tables
-                st.markdown("Imagine we have results from two database tables:")
-                
-                # Create two sorted datasets
-                query1_data = sorted([random.randint(1, 100) for _ in range(5)])
-                query2_data = sorted([random.randint(1, 100) for _ in range(7)])
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("**Query 1 Results (Users Table):**")
-                    st.write(f"User IDs: {query1_data}")
-                
-                with col2:
-                    st.markdown("**Query 2 Results (Orders Table):**")
-                    st.write(f"Order IDs: {query2_data}")
-                
-                if st.button("Merge Query Results"):
-                    # Merge the two sorted lists
-                    merged_results = sorted(query1_data + query2_data)
-                    
-                    st.markdown("**Merged Results (Combined User and Order IDs):**")
-                    
-                    # Visualize the merge process
-                    fig = go.Figure()
-                    
-                    # Add query1 data
-                    fig.add_trace(go.Scatter(
-                        x=list(range(len(query1_data))),
-                        y=query1_data,
-                        mode='markers+lines',
-                        name='Users Table',
-                        marker=dict(size=10, color='blue')
-                    ))
-                    
-                    # Add query2 data (offset x to show as separate dataset)
-                    x_offset = len(query1_data) + 1
-                    fig.add_trace(go.Scatter(
-                        x=[x_offset + i for i in range(len(query2_data))],
-                        y=query2_data,
-                        mode='markers+lines',
-                        name='Orders Table',
-                        marker=dict(size=10, color='green')
-                    ))
-                    
-                    # Add merged data (offset x again)
-                    x_offset = len(query1_data) + len(query2_data) + 2
-                    fig.add_trace(go.Scatter(
-                        x=[x_offset + i for i in range(len(merged_results))],
-                        y=merged_results,
-                        mode='markers+lines',
-                        name='Merged Results',
-                        marker=dict(size=10, color='red')
-                    ))
-                    
-                    fig.update_layout(
-                        title="Database Query Merging",
-                        xaxis_title="Position",
-                        yaxis_title="ID Value",
-                        height=400
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    st.markdown("Merge sort is ideal for database operations because:")
-                    st.markdown("- It efficiently combines already-sorted results")
-                    st.markdown("- Stable sorting preserves record order within same values")
-                    st.markdown("- Performs well on large datasets typical in databases")
-                    st.markdown("- Predictable performance regardless of initial data order")
-            
-            elif real_world_algo == "Heap Sort":
-                st.markdown("#### ⏱️ Priority Queue for Task Scheduling")
-                
-                # Simulate a task scheduler with priorities
-                st.markdown("Imagine an operating system scheduling tasks by priority:")
-                
-                # Generate random tasks with priorities
-                tasks = []
-                for i in range(8):
-                    name = f"Task-{i+1}"
-                    priority = random.randint(1, 10)
-                    tasks.append({"id": name, "priority": priority})
-                
-                # Display tasks
-                df_tasks = pd.DataFrame(tasks)
-                st.dataframe(df_tasks, use_container_width=True)
-                
-                if st.button("Process Tasks by Priority"):
-                    # Sort tasks by priority (highest first)
-                    sorted_tasks = sorted(tasks, key=lambda x: x["priority"], reverse=True)
-                    
-                    st.markdown("**Tasks Executed in Priority Order:**")
-                    
-                    # Process tasks one by one with animation
-                    task_order = []
-                    execution_log = st.empty()
-                    
-                    for i, task in enumerate(sorted_tasks):
-                        task_order.append(task)
-                        remaining = sorted_tasks[i+1:] if i < len(sorted_tasks)-1 else []
-                        
-                        # Show current state
-                        execution_log.markdown(f"""
-                        **Task Executed:** {task['id']} (Priority: {task['priority']})
-                        
-                        **Remaining in Queue:** {len(remaining)} tasks
-                        """)
-                        
-                        # Create visualization
-                        fig = go.Figure()
-                        
-                        # Add executed tasks
-                        if task_order:
-                            fig.add_trace(go.Bar(
-                                x=[t["id"] for t in task_order],
-                                y=[t["priority"] for t in task_order],
-                                name="Executed",
-                                marker_color='lightgreen'
-                            ))
-                        
-                        # Add remaining tasks
-                        if remaining:
-                            fig.add_trace(go.Bar(
-                                x=[t["id"] for t in remaining],
-                                y=[t["priority"] for t in remaining],
-                                name="Waiting",
-                                marker_color='lightblue'
-                            ))
-                        
-                        fig.update_layout(
-                            title="Task Execution by Priority",
-                            xaxis_title="Task ID",
-                            yaxis_title="Priority",
-                            height=400,
-                            barmode='group'
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Pause briefly to show animation
-                        time.sleep(0.5)
-                    
-                    st.success("All tasks completed!")
-                    
-                    st.markdown("Heap sort is perfect for task scheduling because:")
-                    st.markdown("- It efficiently maintains a priority queue")
-                    st.markdown("- O(log n) time to extract highest priority item")
-                    st.markdown("- Easily adjusts as new tasks arrive")
-                    st.markdown("- Memory efficient with O(1) extra space")
-            
-            elif real_world_algo == "Selection Sort":
-                st.markdown("#### 💾 Memory-Constrained Embedded Systems")
-                
-                # Simulate a small embedded system with limited memory
-                st.markdown("Imagine a small IoT device sorting sensor readings:")
-                
-                # Generate random sensor data
-                sensor_data = [random.randint(10, 40) for _ in range(6)]  # Temperature readings
-                
-                # Display memory constraints
-                st.markdown("""
-                **Device Specifications:**
-                - 8-bit microcontroller
-                - 2KB RAM available
-                - Flash memory with limited write cycles
-                """)
-                
-                # Show unsorted sensor readings
-                fig = go.Figure(data=[
-                    go.Scatter(
-                        x=list(range(len(sensor_data))),
-                        y=sensor_data,
-                        mode='markers+lines',
-                        marker=dict(size=12, color='orange')
-                    )
-                ])
-                
-                fig.update_layout(
-                    title="Unsorted Temperature Readings",
-                    xaxis_title="Reading Number",
-                    yaxis_title="Temperature (°C)",
-                    height=350
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                
-                if st.button("Sort with Minimal Memory Usage"):
-                    # Count the number of writes
-                    writes = 0
-                    comparisons = 0
-                    
-                    # Copy the data for sorting
-                    sorted_data = sensor_data.copy()
-                    
-                    # Perform selection sort while counting operations
-                    for i in range(len(sorted_data)):
-                        min_idx = i
-                        for j in range(i+1, len(sorted_data)):
-                            comparisons += 1
-                            if sorted_data[j] < sorted_data[min_idx]:
-                                min_idx = j
-                        
-                        if min_idx != i:
-                            sorted_data[i], sorted_data[min_idx] = sorted_data[min_idx], sorted_data[i]
-                            writes += 1
-                    
-                    # Show sorted data
-                    fig = go.Figure(data=[
-                        go.Scatter(
-                            x=list(range(len(sorted_data))),
-                            y=sorted_data,
-                            mode='markers+lines',
-                            marker=dict(size=12, color='green')
-                        )
-                    ])
-                    
-                    fig.update_layout(
-                        title="Sorted Temperature Readings",
-                        xaxis_title="Reading Number",
-                        yaxis_title="Temperature (°C)",
-                        height=350
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Show memory efficiency
-                    col1, col2 = st.columns(2)
-                    col1.metric("Memory Writes", writes)
-                    col2.metric("Comparisons", comparisons)
-                    
-                    st.markdown("Selection sort is ideal for embedded systems because:")
-                    st.markdown("- Minimizes memory writes (critical for flash memory)")
-                    st.markdown("- O(1) extra space requirement (works in-place)")
-                    st.markdown("- Simple implementation for constrained devices")
-                    st.markdown("- Predictable performance regardless of data order")
     
-    # Algorithm information section
-    st.markdown("---")
-    st.subheader("🧠 Sorting Algorithm Reference")
-    
-    # Create tabs for different algorithms
-    sort_algo_tabs = st.tabs(["Current Algorithm", "All Algorithms Comparison", "Complexity Analysis"])
-    
-    with sort_algo_tabs[0]:
-        if sort_algorithm in SORTING_INFO:
-            algo_info = SORTING_INFO[sort_algorithm]
-            
-            st.markdown(f"### {sort_algorithm}")
-            st.markdown(f"**Description:** {algo_info['description']}")
-            
-            # Complexity badges
-            st.markdown("**Time Complexity:**")
-            col1, col2, col3 = st.columns(3)
-            col1.markdown(f'<span class="complexity-badge complexity-best">Best: {algo_info["best_case"]}</span>', unsafe_allow_html=True)
-            col2.markdown(f'<span class="complexity-badge complexity-average">Average: {algo_info["average_case"]}</span>', unsafe_allow_html=True)
-            col3.markdown(f'<span class="complexity-badge complexity-worst">Worst: {algo_info["worst_case"]}</span>', unsafe_allow_html=True)
-            
-            st.markdown(f"**Space Complexity:** {algo_info['space_complexity']}")
-            st.markdown(f"**Stable:** {algo_info['stable']}")
-            st.markdown(f"**Best Use Case:** {algo_info['use_case']}")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Advantages:**")
-                for pro in algo_info['pros']:
-                    st.markdown(f"✅ {pro}")
-            
-            with col2:
-                st.markdown("**Disadvantages:**")
-                for con in algo_info['cons']:
-                    st.markdown(f"❌ {con}")
-    
-    with sort_algo_tabs[1]:
+    # Performance Comparison Tab
+    with sort_viz_tabs[2]:
+        st.subheader("⚖️ Sorting Algorithm Performance Analysis")
+        
         # Create comprehensive comparison table
         comparison_data = []
         for algo_name, info in SORTING_INFO.items():
@@ -2197,51 +1898,40 @@ with tab2:
         )
         
         st.plotly_chart(fig_complexity, use_container_width=True)
-    
-    with sort_algo_tabs[2]:
-        st.markdown("""
-        ### Understanding Algorithm Complexity
         
-        **Time Complexity** measures how running time increases with input size:
-        - **O(1)**: Constant time - doesn't depend on input size
-        - **O(log n)**: Logarithmic time - very efficient, divides problem in half
-        - **O(n)**: Linear time - increases linearly with input size
-        - **O(n log n)**: Linearithmic time - efficient for large datasets (optimal for comparison sorts)
-        - **O(n²)**: Quadratic time - suitable only for small datasets
+        # Algorithm information section
+        st.markdown("---")
+        st.subheader("🧠 Sorting Algorithm Reference")
         
-        **Space Complexity** measures extra memory needed:
-        - **O(1)**: In-place algorithms (constant extra space)
-        - **O(log n)**: Logarithmic space (usually for recursion stack)
-        - **O(n)**: Linear extra space needed (like merge sort's temporary arrays)
+        # Create tabs for different algorithms
+        sort_algo_tabs = st.tabs(list(SORTING_INFO.keys()))
         
-        **Stability** means equal elements maintain their relative order after sorting.
-        
-        **When to Use Each Algorithm:**
-        - **Small arrays (< 50 elements)**: Insertion Sort
-        - **General purpose**: Quick Sort or Merge Sort
-        - **Guaranteed O(n log n)**: Merge Sort or Heap Sort
-        - **Memory constrained**: Heap Sort or Quick Sort
-        - **Stable sorting needed**: Merge Sort or Insertion Sort
-        - **Educational purposes**: Bubble Sort or Selection Sort
-        """)
-        
-        # Performance tips
-        st.markdown("""
-        ### 💡 Performance Tips
-        
-        **Optimization Strategies:**
-        1. **Hybrid approaches**: Use insertion sort for small subarrays in quick/merge sort
-        2. **Pivot selection**: Use median-of-three for quick sort to avoid worst case
-        3. **Early termination**: Stop bubble sort if no swaps occur in a pass
-        4. **Adaptive algorithms**: Insertion sort performs well on nearly sorted data
-        5. **Cache efficiency**: Quick sort has better cache performance than merge sort
-        
-        **Real-world Considerations:**
-        - Modern languages often use hybrid algorithms (Timsort in Python, Introsort in C++)
-        - Consider data characteristics: size, initial order, stability requirements
-        - For very large datasets, consider external sorting algorithms
-        - Parallel sorting algorithms can leverage multiple CPU cores
-        """)
+        for i, (algo_name, info) in enumerate(SORTING_INFO.items()):
+            with sort_algo_tabs[i]:
+                st.markdown(f"### {algo_name}")
+                st.markdown(f"**Description:** {info['description']}")
+                
+                # Complexity badges
+                st.markdown("**Time Complexity:**")
+                col1, col2, col3 = st.columns(3)
+                col1.markdown(f'<span class="complexity-badge complexity-best">Best: {info["best_case"]}</span>', unsafe_allow_html=True)
+                col2.markdown(f'<span class="complexity-badge complexity-average">Average: {info["average_case"]}</span>', unsafe_allow_html=True)
+                col3.markdown(f'<span class="complexity-badge complexity-worst">Worst: {info["worst_case"]}</span>', unsafe_allow_html=True)
+                
+                st.markdown(f"**Space Complexity:** {info['space_complexity']}")
+                st.markdown(f"**Stable:** {info['stable']}")
+                st.markdown(f"**Best Use Case:** {info['use_case']}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Advantages:**")
+                    for pro in info['pros']:
+                        st.markdown(f"✅ {pro}")
+                
+                with col2:
+                    st.markdown("**Disadvantages:**")
+                    for con in info['cons']:
+                        st.markdown(f"❌ {con}")
 
 # Footer
 st.markdown("---")
@@ -2270,84 +1960,4 @@ st.markdown("""
     <p><strong>Built with ❤️ using:</strong> Streamlit • Plotly • Folium • NumPy • Pandas</p>
     <p class="footer-credit">Developed with love by Shreyas Kasture</p>
 </div>
-""", unsafe_allow_html=True)
-
-# Additional features and improvements
-if st.sidebar.button("🔧 Show Advanced Settings"):
-    with st.sidebar.expander("Advanced Configuration", expanded=True):
-        st.markdown("### 🎛️ Advanced Settings")
-        
-        # Performance settings
-        st.markdown("**Performance Optimization:**")
-        enable_caching = st.checkbox("Enable Result Caching", value=True)
-        max_grid_size = st.slider("Max Grid Size", 20, 100, 50)
-        animation_quality = st.selectbox("Animation Quality", ["High", "Medium", "Low"])
-        
-        # Debug settings
-        st.markdown("**Debug Options:**")
-        show_debug_info = st.checkbox("Show Debug Information")
-        verbose_logging = st.checkbox("Verbose Logging")
-        
-        # Export settings
-        st.markdown("**Export Options:**")
-        if st.button("📁 Export Results"):
-            st.info("Export functionality would save current results to file")
-        
-        if show_debug_info:
-            st.markdown("**Debug Information:**")
-            st.json({
-                "session_state_keys": list(st.session_state.keys()),
-                "current_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "streamlit_version": st.__version__
-            })
-
-# Session state cleanup
-if st.sidebar.button("🧹 Clear All Data"):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
-
-# JavaScript event handlers for interactive clicking
-st.markdown("""
-<script>
-// Handle click events for the interactive grid and map
-document.addEventListener('DOMContentLoaded', function() {
-    // Set up observers to detect when new charts are added
-    const observer = new MutationObserver(function(mutations) {
-        setupClickHandlers();
-    });
-    
-    // Start observing the document body for changes
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Initial setup
-    setupClickHandlers();
-});
-
-function setupClickHandlers() {
-    // Look for plotly charts and attach click handlers
-    const gridPlots = document.querySelectorAll('[data-testid="stPlotlyChart"] .js-plotly-plot');
-    
-    gridPlots.forEach(plot => {
-        // Only attach if not already attached
-        if (!plot.getAttribute('data-handler-attached')) {
-            plot.setAttribute('data-handler-attached', 'true');
-            
-            plot.on('plotly_click', function(data) {
-                const clickData = {
-                    x: data.points[0].x,
-                    y: data.points[0].y
-                };
-                
-                // Send to Streamlit
-                window.parent.postMessage({
-                    type: "streamlit:setComponentValue",
-                    value: clickData,
-                    key: "last_click_data"
-                }, "*");
-            });
-        }
-    });
-}
-</script>
 """, unsafe_allow_html=True)
