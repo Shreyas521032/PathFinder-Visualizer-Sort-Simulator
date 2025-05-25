@@ -1,5 +1,7 @@
 # 🗺️ Advanced PathFinder & Sort Visualizer
 
+🌍 **Live Project**: [https://shreyas-pathfinder-visualizer-sort-simulator.streamlit.app](https://shreyas-pathfinder-visualizer-sort-simulator.streamlit.app/)
+
 An interactive web application built with Streamlit that provides comprehensive visualization and analysis of pathfinding algorithms and sorting algorithms. Perfect for educational purposes, algorithm comparison, and real-world application demonstrations.
 
 ## 🚀 Features Overview
