@@ -1371,7 +1371,7 @@ with tab1:
                 """)
     
     # Algorithm Comparison Tab (unchanged but keeping for completeness)
-    with pathfind_tabs[2]:
+    with pathfind_tabs[1]:
         st.subheader("🆚 Algorithm Performance Comparison")
         
         col1, col2 = st.columns([2, 1])
