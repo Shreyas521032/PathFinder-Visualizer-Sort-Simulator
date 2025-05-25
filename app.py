@@ -1012,7 +1012,7 @@ with tab1:
     st.header("🗺️ Advanced Pathfinding Visualization")
     
     # Create sub-tabs for different pathfinding modes
-    pathfind_tabs = st.tabs(["🟩 Interactive Grid", "🌍 Real Maps", "🆚 Algorithm Comparison"])
+    pathfind_tabs = st.tabs(["🟩 Interactive Grid", "🆚 Algorithm Comparison"])
     
     # Interactive Grid-Based Pathfinding Tab (Enhanced)
     with pathfind_tabs[0]:
@@ -2490,60 +2490,9 @@ st.markdown("""
             <p>✅ Business intelligence applications</p>
         </div>
     </div>
-    <p><strong>Built with ❤️ using:</strong> Streamlit • Plotly • Folium • NumPy • Pandas</p>
-    <p><em>Enhanced with interactive map controls, real-world sorting applications, and comprehensive performance analysis</em></p>
+    <p><strong>Built with ❤️ by Shreyas Kasture</strong></p>
 </div>
 """, unsafe_allow_html=True)
-
-# Additional features and improvements
-if st.sidebar.button("🔧 Show Advanced Settings"):
-    with st.sidebar.expander("Advanced Configuration", expanded=True):
-        st.markdown("### 🎛️ Advanced Settings")
-        
-        # Performance settings
-        st.markdown("**Performance Optimization:**")
-        enable_caching = st.checkbox("Enable Result Caching", value=True)
-        max_grid_size = st.slider("Max Grid Size", 20, 100, 50)
-        animation_quality = st.selectbox("Animation Quality", ["High", "Medium", "Low"])
-        
-        # Interactive settings
-        st.markdown("**Interaction Settings:**")
-        click_sensitivity = st.slider("Click Sensitivity", 0.1, 2.0, 1.0)
-        hover_enabled = st.checkbox("Enable Hover Effects", value=True)
-        
-        # Debug settings
-        st.markdown("**Debug Options:**")
-        show_debug_info = st.checkbox("Show Debug Information")
-        verbose_logging = st.checkbox("Verbose Logging")
-        
-        # Export settings
-        st.markdown("**Export Options:**")
-        if st.button("📁 Export Results"):
-            if 'comprehensive_results' in st.session_state:
-                csv = pd.DataFrame(st.session_state.comprehensive_results).to_csv(index=False)
-                st.download_button(
-                    label="Download Performance Analysis CSV",
-                    data=csv,
-                    file_name="sorting_performance_analysis.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.info("No analysis results to export. Run performance analysis first.")
-        
-        if show_debug_info:
-            st.markdown("**Debug Information:**")
-            debug_info = {
-                "session_state_keys": list(st.session_state.keys()),
-                "current_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "streamlit_version": st.__version__,
-                "active_features": {
-                    "grid_pathfinding": 'grid' in st.session_state,
-                    "real_maps": 'real_map' in st.session_state,
-                    "sorting_data": 'sorting_array' in st.session_state,
-                    "real_world_apps": any(key in st.session_state for key in ['students_data', 'employees_data', 'products_data', 'stocks_data'])
-                }
-            }
-            st.json(debug_info)
 
 # Session state cleanup
 if st.sidebar.button("🧹 Clear All Data"):
