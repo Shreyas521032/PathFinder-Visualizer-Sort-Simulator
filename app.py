@@ -658,7 +658,7 @@ PATHFINDING_INFO = {
         "cons": ["Not optimal", "Can get stuck in infinite paths", "May not find shortest path", "Depth-dependent"]
     },
     "Greedy Best-First": {
-        "description": "Uses extra memory", "Not in-place", "Slower than quicksort in practice", "Overhead for small arrays"]
+        "description": "Uses extra memory", "Not in-place", "Slower than quicksort in practice", "Overhead for small arrays"
     },
     "Heap Sort": {
         "description": "Uses binary heap data structure to repeatedly extract maximum element and build sorted array.",
